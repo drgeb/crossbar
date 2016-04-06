@@ -115,7 +115,7 @@ class RouterServiceSession(ApplicationSession):
                     if session_counts.has_key(auth_role):
                         session_counts[auth_role] += 1
                     else:
-                        session_counts[auth_role] = 1;
+                        session_counts[auth_role] = 1
 
         return session_counts
 
