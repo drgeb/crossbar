@@ -146,9 +146,8 @@ class Dealer(object):
                                 u'created': registration.created,
                                 u'uri': registration.uri,
                                 u'match': registration.match,
-                                u'invoke': registration.extra.invoke,
                             }
-                            service_session.publish(u'wamp.registration.on_delete_detailed', args=[session._session_id, registration.id], kwargs=registration_details)
+                            service_session.publish(u'wamp.registration.on_delete_detailed', session._session_id, registration.id, registration_details)
 
             del self._session_to_registrations[session]
 
@@ -332,10 +331,8 @@ class Dealer(object):
                         u'created': registration.created,
                         u'uri': registration.uri,
                         u'match': registration.match,
-                        u'invoke': registration.extra.invoke,
                     }
-                    service_session.publish(u'wamp.registration.on_delete_detailed', args=[session._session_id, registration.id],
-                                            kwargs=registration_details)
+                    service_session.publish(u'wamp.registration.on_delete_detailed', session._session_id, registration.id, registration_details)
 
         return was_registered, was_last_callee
 
