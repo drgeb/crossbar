@@ -107,6 +107,16 @@ class Router(object):
             u'trusted': RouterTrustedRole(self, u'trusted')
         }
 
+        self._processing_stats_publish = 0
+        self._processing_stats_subscribe = 0
+        self._processing_stats_unsubscribe = 0
+        self._processing_stats_register = 0
+        self._processing_stats_unregister = 0
+        self._processing_stats_call = 0
+        self._processing_stats_cancel = 0
+        self._processing_stats_yield = 0
+        self._processing_stats_error = 0
+
     def attach(self, session):
         """
         Implements :func:`autobahn.wamp.interfaces.IRouter.attach`
@@ -169,32 +179,41 @@ class Router(object):
         #
         if isinstance(msg, message.Publish):
             self._broker.processPublish(session, msg)
+            self._processing_stats_publish += 1
 
         elif isinstance(msg, message.Subscribe):
             self._broker.processSubscribe(session, msg)
+            self._processing_stats_subscribe += 1
 
         elif isinstance(msg, message.Unsubscribe):
             self._broker.processUnsubscribe(session, msg)
+            self._processing_stats_unsubscribe += 1
 
         # Dealer
         #
         elif isinstance(msg, message.Register):
             self._dealer.processRegister(session, msg)
+            self._processing_stats_register += 1
 
         elif isinstance(msg, message.Unregister):
             self._dealer.processUnregister(session, msg)
+            self._processing_stats_unregister += 1
 
         elif isinstance(msg, message.Call):
             self._dealer.processCall(session, msg)
+            self._processing_stats_call += 1
 
         elif isinstance(msg, message.Cancel):
             self._dealer.processCancel(session, msg)
+            self._processing_stats_cancel += 1
 
         elif isinstance(msg, message.Yield):
             self._dealer.processYield(session, msg)
+            self._processing_stats_yield += 1
 
         elif isinstance(msg, message.Error) and msg.request_type == message.Invocation.MESSAGE_TYPE:
             self._dealer.processInvocationError(session, msg)
+            self._processing_stats_error += 1
 
         else:
             raise ProtocolError("Unexpected message {0}".format(msg.__class__))

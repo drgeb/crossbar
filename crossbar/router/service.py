@@ -126,6 +126,50 @@ class RouterServiceSession(ApplicationSession):
         if not isinstance(failure.value, ApplicationError):
             super(RouterServiceSession, self).onUserError(failure, msg)
 
+    @wamp.register(u'wamp.session.summary')
+    def session_summary(self, filter_authroles=None):
+        """
+        Get counts of session IDs of sessions currently joined on the router.
+
+        :param filter_authroles: If provided, only return sessions counts for authroles from this list.
+        :type filter_authroles: None or list
+
+        :returns: List of WAMP session IDs (order undefined).
+        :rtype: list
+        """
+        assert (filter_authroles is None or type(filter_authroles) == list)
+        session_counts = {}
+        for session in self._router._session_id_to_session.values():
+            if not _is_restricted_session(session):
+                auth_role = session._session_details[u'authrole']
+                if filter_authroles is None or auth_role in filter_authroles:
+                    if session_counts.has_key(auth_role):
+                        session_counts[auth_role] += 1
+                    else:
+                        session_counts[auth_role] = 1
+
+        return session_counts
+
+    @wamp.register(u'wamp.router.stats')
+    def session_list(self):
+        """
+        Get processed message counts from router
+
+        """
+        stats = {
+            'publish': self._router._processing_stats_publish,
+            'subscribe': self._router._processing_stats_subscribe,
+            'unsubscribe':self._router._processing_stats_unsubscribe,
+            'register': self._router._processing_stats_register,
+            'unregister': self._router._processing_stats_unregister,
+            'call': self._router._processing_stats_call,
+            'cancel': self._router._processing_stats_cancel,
+            'yield': self._router._processing_stats_yield,
+            'error': self._router._processing_stats_error,
+        }
+
+        return stats
+
     @wamp.register(u'wamp.session.list')
     def session_list(self, filter_authroles=None):
         """

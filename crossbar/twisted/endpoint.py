@@ -54,7 +54,7 @@ try:
     from twisted.internet.endpoints import SSL4ServerEndpoint, \
         SSL4ClientEndpoint
     from OpenSSL import crypto
-    from OpenSSL.SSL import TLSv1_2_METHOD
+    #from OpenSSL.SSL import TLSv1_2_METHOD
     from twisted.internet.interfaces import ISSLTransport
 
     _HAS_TLS = True

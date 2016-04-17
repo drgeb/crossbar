@@ -141,6 +141,13 @@ class Dealer(object):
                             service_session.publish(u'wamp.registration.on_unregister', session._session_id, registration.id)
                         if was_last_callee:
                             service_session.publish(u'wamp.registration.on_delete', session._session_id, registration.id)
+                            registration_details = {
+                                u'id': registration.id,
+                                u'created': registration.created,
+                                u'uri': registration.uri,
+                                u'match': registration.match,
+                            }
+                            service_session.publish(u'wamp.registration.on_delete_detailed', session._session_id, registration.id, registration_details)
 
             del self._session_to_registrations[session]
 
@@ -319,6 +326,13 @@ class Dealer(object):
                     service_session.publish(u'wamp.registration.on_unregister', session._session_id, registration.id)
                 if was_last_callee:
                     service_session.publish(u'wamp.registration.on_delete', session._session_id, registration.id)
+                    registration_details = {
+                        u'id': registration.id,
+                        u'created': registration.created,
+                        u'uri': registration.uri,
+                        u'match': registration.match,
+                    }
+                    service_session.publish(u'wamp.registration.on_delete_detailed', session._session_id, registration.id, registration_details)
 
         return was_registered, was_last_callee
 
