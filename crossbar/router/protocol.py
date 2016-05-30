@@ -297,6 +297,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
     Crossbar.io WAMP-over-WebSocket server factory.
     """
 
+    showServerVersion = False
     protocol = WampWebSocketServerProtocol
     log = make_logger()
 
@@ -315,7 +316,11 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
 
         options = config.get('options', {})
 
-        server = "Crossbar/{}".format(crossbar.__version__)
+        self.showServerVersion = options.get('show_server_version', self.showServerVersion)
+        if self.showServerVersion:
+            server = "Crossbar/{}".format(crossbar.__version__)
+        else:
+            server = "Crossbar"
         externalPort = options.get('external_port', None)
 
         # explicit list of WAMP serializers
@@ -328,6 +333,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                 # try CBOR WAMP serializer
                 try:
                     from autobahn.wamp.serializer import CBORSerializer
+                    serializers.append(CBORSerializer(batched=True))
                     serializers.append(CBORSerializer())
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-CBOR serializer")
@@ -338,16 +344,29 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                 # try MsgPack WAMP serializer
                 try:
                     from autobahn.wamp.serializer import MsgPackSerializer
+                    serializers.append(MsgPackSerializer(batched=True))
                     serializers.append(MsgPackSerializer())
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-MsgPack serializer")
                 else:
                     sers.discard('msgpack')
 
+            if 'ubjson' in sers:
+                # try UBJSON WAMP serializer
+                try:
+                    from autobahn.wamp.serializer import UBJSONSerializer
+                    serializers.append(UBJSONSerializer(batched=True))
+                    serializers.append(UBJSONSerializer())
+                except ImportError:
+                    self.log.warn("Warning: could not load WAMP-UBJSON serializer")
+                else:
+                    sers.discard('ubjson')
+
             if 'json' in sers:
                 # try JSON WAMP serializer
                 try:
                     from autobahn.wamp.serializer import JsonSerializer
+                    serializers.append(JsonSerializer(batched=True))
                     serializers.append(JsonSerializer())
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-JSON serializer")

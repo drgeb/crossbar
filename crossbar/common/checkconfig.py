@@ -746,19 +746,9 @@ def check_connecting_endpoint_tls(tls):
         if k not in ['ca_certificates', 'hostname', 'certificate', 'key']:
             raise InvalidConfigException("encountered unknown attribute '{}' in connecting endpoint TLS configuration".format(k))
 
-    for k in ['certificate', 'key']:
-        if k in tls and not os.path.exists(tls[k]):
-            raise InvalidConfigException(
-                "File '{}' for '{}' in TLS configuration "
-                "not found".format(tls[k], k)
-            )
-
     if 'ca_certificates' in tls:
         if not isinstance(tls['ca_certificates'], Sequence):
             raise InvalidConfigException("'ca_certificates' must be a list")
-        for fname in tls['ca_certificates']:
-            if not os.path.exists(fname):
-                raise InvalidConfigException("'ca_certificates' contains non-existant path '{}'".format(fname))
 
     for req_k in ['hostname']:
         if req_k not in tls:
@@ -989,7 +979,8 @@ def check_websocket_options(options):
             'enable_flash_policy',
             'flash_policy',
             'compression',
-            'require_websocket_subprotocol'
+            'require_websocket_subprotocol',
+            'show_server_version',
         ]:
             raise InvalidConfigException("encountered unknown attribute '{}' in WebSocket options".format(k))
 
@@ -1772,8 +1763,8 @@ def check_listening_transport_rawsocket(transport):
         if not isinstance(serializers, Sequence):
             raise InvalidConfigException("'serializers' in RawSocket transport configuration must be list ({} encountered)".format(type(serializers)))
         for serializer in serializers:
-            if serializer not in [u'json', u'msgpack', u'cbor']:
-                raise InvalidConfigException("invalid value {} for 'serializer' in RawSocket transport configuration - must be one of ['json', 'msgpack', 'cbor']".format(serializer))
+            if serializer not in [u'json', u'msgpack', u'cbor', u'ubjson']:
+                raise InvalidConfigException("invalid value {} for 'serializer' in RawSocket transport configuration - must be one of ['json', 'msgpack', 'cbor', 'ubjson']".format(serializer))
 
     if 'max_message_size' in transport:
         check_transport_max_message_size(transport['max_message_size'])
@@ -1856,8 +1847,8 @@ def check_connecting_transport_rawsocket(transport):
     if not isinstance(serializer, six.text_type):
         raise InvalidConfigException("'serializer' in RawSocket transport configuration must be a string ({} encountered)".format(type(serializer)))
 
-    if serializer not in ['json', 'msgpack', 'cbor']:
-        raise InvalidConfigException("invalid value {} for 'serializer' in RawSocket transport configuration - must be one of ['json', 'msgpack', 'cbor']".format(serializer))
+    if serializer not in ['json', 'msgpack', 'cbor', 'ubjson']:
+        raise InvalidConfigException("invalid value {} for 'serializer' in RawSocket transport configuration - must be one of ['json', 'msgpack', 'cbor', 'ubjson']".format(serializer))
 
     if 'debug' in transport:
         debug = transport['debug']
@@ -2501,6 +2492,14 @@ def check_guest(guest):
                     'value': (True, None),
                     'close': (False, [bool]),
                 }, options['stdin'], "Guest process 'stdin' configuration")
+
+                # the following configures in which format the value is to be serialized and forwarded
+                # to the spawned worker on stdin
+                _type = options['stdin']['type']
+                _permissible_types = [u'json']
+
+                if options['stdin']['type'] not in _permissible_types:
+                    raise InvalidConfigException("invalid value '{}' for 'type' in 'stdin' guest worker configuration - must be one of: {}".format(_type, _permissible_types))
             else:
                 if options['stdin'] not in ['close']:
                     raise InvalidConfigException("invalid value '{}' for 'stdin' in guest worker configuration".format(options['stdin']))
