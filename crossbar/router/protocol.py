@@ -101,30 +101,9 @@ def set_websocket_options(factory, options):
     if "auto_ping_timeout" in c:
         autoPingTimeout = float(c["auto_ping_timeout"]) / 1000.
 
-    factory.setProtocolOptions(versions=versions,
-                               webStatus=c.get("enable_webstatus", True),
-                               utf8validateIncoming=c.get("validate_utf8", True),
-                               maskServerFrames=c.get("mask_server_frames", False),
-                               requireMaskedClientFrames=c.get("require_masked_client_frames", True),
-                               applyMask=c.get("apply_mask", True),
-                               maxFramePayloadSize=c.get("max_frame_size", 0),
-                               maxMessagePayloadSize=c.get("max_message_size", 0),
-                               autoFragmentSize=c.get("auto_fragment_size", 0),
-                               failByDrop=c.get("fail_by_drop", False),
-                               echoCloseCodeReason=c.get("echo_close_codereason", False),
-                               openHandshakeTimeout=openHandshakeTimeout,
-                               closeHandshakeTimeout=closeHandshakeTimeout,
-                               tcpNoDelay=c.get("tcp_nodelay", True),
-                               autoPingInterval=autoPingInterval,
-                               autoPingTimeout=autoPingTimeout,
-                               autoPingSize=c.get("auto_ping_size", None),
-                               serveFlashSocketPolicy=c.get("enable_flash_policy", None),
-                               flashSocketPolicy=c.get("flash_policy", None),
-                               allowedOrigins=c.get("allowed_origins", ["*"]))
-
     # WebSocket compression
     #
-    factory.setProtocolOptions(perMessageCompressionAccept=lambda _: None)
+    per_msg_compression = lambda _: None  # noqa
     if 'compression' in c:
 
         # permessage-deflate
@@ -152,8 +131,32 @@ def set_websocket_options(factory, options):
                                                                 noContextTakeover=noContextTakeover,
                                                                 windowBits=windowBits,
                                                                 memLevel=memLevel)
+            per_msg_compression = accept
 
-            factory.setProtocolOptions(perMessageCompressionAccept=accept)
+    factory.setProtocolOptions(
+        versions=versions,
+        webStatus=c.get("enable_webstatus", True),
+        utf8validateIncoming=c.get("validate_utf8", True),
+        maskServerFrames=c.get("mask_server_frames", False),
+        requireMaskedClientFrames=c.get("require_masked_client_frames", True),
+        applyMask=c.get("apply_mask", True),
+        maxFramePayloadSize=c.get("max_frame_size", 0),
+        maxMessagePayloadSize=c.get("max_message_size", 0),
+        autoFragmentSize=c.get("auto_fragment_size", 0),
+        failByDrop=c.get("fail_by_drop", False),
+        echoCloseCodeReason=c.get("echo_close_codereason", False),
+        openHandshakeTimeout=openHandshakeTimeout,
+        closeHandshakeTimeout=closeHandshakeTimeout,
+        tcpNoDelay=c.get("tcp_nodelay", True),
+        autoPingInterval=autoPingInterval,
+        autoPingTimeout=autoPingTimeout,
+        autoPingSize=c.get("auto_ping_size", None),
+        serveFlashSocketPolicy=c.get("enable_flash_policy", None),
+        flashSocketPolicy=c.get("flash_policy", None),
+        allowedOrigins=c.get("allowed_origins", ["*"]),
+        allowNullOrigin=bool(c.get("allow_null_origin", True)),
+        perMessageCompressionAccept=per_msg_compression,
+    )
 
 
 class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
@@ -330,7 +333,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
             serializers = []
             sers = set(config['serializers'])
 
-            if 'cbor' in sers:
+            if u'cbor' in sers:
                 # try CBOR WAMP serializer
                 try:
                     from autobahn.wamp.serializer import CBORSerializer
@@ -339,9 +342,9 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-CBOR serializer")
                 else:
-                    sers.discard('cbor')
+                    sers.discard(u'cbor')
 
-            if 'msgpack' in sers:
+            if u'msgpack' in sers:
                 # try MsgPack WAMP serializer
                 try:
                     from autobahn.wamp.serializer import MsgPackSerializer
@@ -352,7 +355,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                 else:
                     sers.discard('msgpack')
 
-            if 'ubjson' in sers:
+            if u'ubjson' in sers:
                 # try UBJSON WAMP serializer
                 try:
                     from autobahn.wamp.serializer import UBJSONSerializer
@@ -361,9 +364,9 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-UBJSON serializer")
                 else:
-                    sers.discard('ubjson')
+                    sers.discard(u'ubjson')
 
-            if 'json' in sers:
+            if u'json' in sers:
                 # try JSON WAMP serializer
                 try:
                     from autobahn.wamp.serializer import JsonSerializer
@@ -372,7 +375,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-JSON serializer")
                 else:
-                    sers.discard('json')
+                    sers.discard(u'json')
 
             if not serializers:
                 raise Exception("no valid WAMP serializers specified")
@@ -490,7 +493,7 @@ class WampRawSocketServerFactory(rawsocket.WampRawSocketServerFactory):
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-CBOR serializer")
                 else:
-                    sers.discard('cbor')
+                    sers.discard(u'cbor')
 
             if u'msgpack' in sers:
                 # try MsgPack WAMP serializer
@@ -502,7 +505,18 @@ class WampRawSocketServerFactory(rawsocket.WampRawSocketServerFactory):
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-MsgPack serializer")
                 else:
-                    sers.discard('msgpack')
+                    sers.discard(u'msgpack')
+
+            if u'ubjson' in sers:
+                # try UBJSON WAMP serializer
+                try:
+                    from autobahn.wamp.serializer import UBJSONSerializer
+                    serializers.append(UBJSONSerializer(batched=True))
+                    serializers.append(UBJSONSerializer())
+                except ImportError:
+                    self.log.warn("Warning: could not load WAMP-UBJSON serializer")
+                else:
+                    sers.discard(u'ubjson')
 
             if u'json' in sers:
                 # try JSON WAMP serializer
@@ -512,7 +526,7 @@ class WampRawSocketServerFactory(rawsocket.WampRawSocketServerFactory):
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-JSON serializer")
                 else:
-                    sers.discard('json')
+                    sers.discard(u'json')
 
             if not serializers:
                 raise Exception("no valid WAMP serializers specified")

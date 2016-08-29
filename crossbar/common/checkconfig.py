@@ -957,6 +957,7 @@ def check_websocket_options(options):
         if k not in [
             # WebSocket options
             'allowed_origins',
+            'allow_null_origin',
             'external_port',
             'enable_hybi10',
             'enable_rfc6455',
@@ -2638,8 +2639,8 @@ def check_controller_options(options):
             raise InvalidConfigException("'title' in 'options' in controller configuration must be a string ({} encountered)".format(type(title)))
 
     if 'shutdown' in options:
-        if type(options['shutdown']) != Sequence:
-            raise InvalidConfigException("invalid type {} for 'shutdown' in node controller options (must be a list)".format(type(options['shutdown_mode'])))
+        if not isinstance(options['shutdown'], Sequence):
+            raise InvalidConfigException("invalid type {} for 'shutdown' in node controller options (must be a list)".format(type(options['shutdown'])))
         for shutdown_mode in options['shutdown']:
             if shutdown_mode not in NODE_SHUTDOWN_MODES:
                 raise InvalidConfigException("invalid value '{}' for shutdown mode in controller options (permissible values: {})".format(shutdown_mode, ', '.join("'{}'".format(x) for x in NODE_SHUTDOWN_MODES)))
@@ -2696,9 +2697,6 @@ def check_cdc(config):
         raise InvalidConfigException("'config' item with CDC configuration must of type dictionary ({} encountered)\n\n{}".format(type(config), pformat(config)))
 
     check_dict_args({
-        'enabled': (True, [bool]),
-        'secret': (False, [six.text_type]),
-        'realm': (False, [six.text_type]),
         'transport': (False, [Mapping]),
     }, config, "invalid 'cdc' configuration")
 
