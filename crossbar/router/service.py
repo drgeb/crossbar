@@ -146,7 +146,7 @@ class RouterServiceSession(ApplicationSession):
         assert (filter_authroles is None or type(filter_authroles) == list)
         session_counts = {}
         for session in self._router._session_id_to_session.values():
-            if not _is_restricted_session(session):
+            if not is_restricted_session(session):
                 auth_role = session._session_details[u'authrole']
                 if filter_authroles is None or auth_role in filter_authroles:
                     if session_counts.has_key(auth_role):

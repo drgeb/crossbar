@@ -141,5 +141,6 @@ setup(
                  "Topic :: Software Development :: Object Brokering",
                  "Topic :: System :: Distributed Computing",
                  "Topic :: System :: Networking"],
-    keywords='crossbar router autobahn autobahn.ws websocket realtime rfc6455 wamp rpc pubsub oracle postgres postgresql'
+    keywords='crossbar router autobahn autobahn.ws websocket realtime rfc6455 wamp rpc pubsub oracle postgres postgresql',
+    dependency_links=['https://github.com/NinjaMSP/autobahn-python/tarball/master#egg=autobahn-0.18.2']
 )
