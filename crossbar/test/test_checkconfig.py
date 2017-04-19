@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -34,12 +34,44 @@ from crossbar.test import TestCase
 from crossbar.common import checkconfig
 
 import json
+import six
+if six.PY3:
+    from collections.abc import Sequence
+else:
+    from collections import Sequence
 
 
 class CheckDictArgsTests(TestCase):
     """
     Tests for L{crossbar.common.checkconfig.check_dict_args}.
     """
+    def test_sequence_string(self):
+        """
+        A Sequence should not imply we accept strings
+        """
+        with self.assertRaises(checkconfig.InvalidConfigException) as e:
+            checkconfig.check_dict_args(
+                {"foo": (True, [Sequence])},
+                {"foo": "not really a Sequence"},
+                "Nice message for the user"
+            )
+        self.assertEqual(
+            "Nice message for the user - invalid type str encountered for "
+            "attribute 'foo', must be one of (Sequence)",
+            str(e.exception),
+        )
+
+    def test_sequence_list(self):
+        """
+        A Sequence should accept list
+        """
+        checkconfig.check_dict_args(
+            {"foo": (True, [Sequence])},
+            {"foo": ["a", "real", "sequence"]},
+            "Nice message for the user"
+        )
+        # should work, with no exceptions
+
     def test_notDict(self):
         """
         A non-dict passed in as the config will raise a
@@ -153,6 +185,58 @@ class CheckContainerTests(TestCase):
 
         self.assertIn("invalid component configuration - missing mandatory attribute 'transport'",
                       str(e.exception))
+
+
+class CheckEndpointTests(TestCase):
+    """
+    check_listening_endpoint and check_connecting_endpoint
+    """
+
+    def test_twisted_client_error(self):
+        config = {
+            "type": "twisted",
+            "client_string": 1000,
+        }
+
+        with self.assertRaises(checkconfig.InvalidConfigException) as ctx:
+            checkconfig.check_connecting_endpoint(config)
+        self.assertTrue(
+            "in Twisted endpoint must be str" in str(ctx.exception)
+        )
+
+    def test_twisted_server_error(self):
+        config = {
+            "type": "twisted",
+            "server_string": 1000,
+        }
+
+        with self.assertRaises(checkconfig.InvalidConfigException) as ctx:
+            checkconfig.check_listening_endpoint(config)
+        self.assertTrue(
+            "in Twisted endpoint must be str" in str(ctx.exception)
+        )
+
+    def test_twisted_server_missing_arg(self):
+        config = {
+            "type": "twisted"
+        }
+
+        with self.assertRaises(checkconfig.InvalidConfigException) as ctx:
+            checkconfig.check_listening_endpoint(config)
+        self.assertTrue(
+            "mandatory attribute 'server_string'" in str(ctx.exception)
+        )
+
+    def test_twisted_client_missing_arg(self):
+        config = {
+            "type": "twisted"
+        }
+
+        with self.assertRaises(checkconfig.InvalidConfigException) as ctx:
+            checkconfig.check_connecting_endpoint(config)
+        self.assertTrue(
+            "mandatory attribute 'client_string'" in str(ctx.exception)
+        )
 
 
 class CheckRealmTests(TestCase):

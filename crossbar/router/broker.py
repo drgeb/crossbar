@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -50,6 +50,14 @@ from txaio import make_logger
 __all__ = ('Broker',)
 
 
+class SubscriptionExtra(object):
+
+    __slots__ = ('retained_events',)
+
+    def __init__(self, retained_events=None):
+        self.retained_events = retained_events or []
+
+
 class Broker(object):
     """
     Basic WAMP broker.
@@ -85,6 +93,7 @@ class Broker(object):
                                                       subscriber_blackwhite_listing=True,
                                                       publisher_exclusion=True,
                                                       subscription_revocation=True,
+                                                      event_retention=True,
                                                       payload_transparency=True,
                                                       payload_encryption_cryptobox=True)
 
@@ -117,6 +126,13 @@ class Broker(object):
             for subscription in self._session_to_subscriptions[session]:
 
                 was_subscribed, was_last_subscriber = self._subscription_map.drop_observer(session, subscription)
+                was_deleted = False
+
+                # delete it if there are no subscribers and no retained events
+                #
+                if was_subscribed and was_last_subscriber and not subscription.extra.retained_events:
+                    was_deleted = True
+                    self._subscription_map.delete_observation(subscription)
 
                 # publish WAMP meta events
                 #
@@ -125,7 +141,7 @@ class Broker(object):
                     if service_session and not subscription.uri.startswith(u'wamp.'):
                         if was_subscribed:
                             service_session.publish(u'wamp.subscription.on_unsubscribe', session._session_id, subscription.id)
-                        if was_last_subscriber:
+                        if was_deleted:
                             service_session.publish(u'wamp.subscription.on_delete', session._session_id, subscription.id)
 
             del self._session_to_subscriptions[session]
@@ -133,10 +149,71 @@ class Broker(object):
         else:
             raise Exception("session with ID {} not attached".format(session._session_id))
 
+    def _filter_publish_receivers(self, receivers, publish):
+        """
+        Internal helper.
+
+        Does all filtering on a candidate set of Publish receivers,
+        based on all the white/blacklist options in 'publish'.
+        """
+        # filter by "eligible" receivers
+        #
+        if publish.eligible:
+
+            # map eligible session IDs to eligible sessions
+            eligible = set()
+            for session_id in publish.eligible:
+                if session_id in self._router._session_id_to_session:
+                    eligible.add(self._router._session_id_to_session[session_id])
+
+            # filter receivers for eligible sessions
+            receivers = eligible & receivers
+
+        # if "eligible_authid" we only accept receivers that have the correct authid
+        if publish.eligible_authid:
+            eligible = set()
+            for aid in publish.eligible_authid:
+                eligible.update(self._router._authid_to_sessions.get(aid, set()))
+            receivers = receivers & eligible
+
+        # if "eligible_authrole" we only accept receivers that have the correct authrole
+        if publish.eligible_authrole:
+            eligible = set()
+            for ar in publish.eligible_authrole:
+                eligible.update(self._router._authrole_to_sessions.get(ar, set()))
+            receivers = receivers & eligible
+
+        # remove "excluded" receivers
+        #
+        if publish.exclude:
+
+            # map excluded session IDs to excluded sessions
+            exclude = set()
+            for s in publish.exclude:
+                if s in self._router._session_id_to_session:
+                    exclude.add(self._router._session_id_to_session[s])
+
+            # filter receivers for excluded sessions
+            if exclude:
+                receivers = receivers - exclude
+
+        # remove auth-id based receivers
+        if publish.exclude_authid:
+            for aid in publish.exclude_authid:
+                receivers = receivers - self._router._authid_to_sessions.get(aid, set())
+
+        # remove authrole based receivers
+        if publish.exclude_authrole:
+            for ar in publish.exclude_authrole:
+                receivers = receivers - self._router._authrole_to_sessions.get(ar, set())
+
+        return receivers
+
     def processPublish(self, session, publish):
         """
         Implements :func:`crossbar.router.interfaces.IBroker.processPublish`
         """
+
         # check topic URI: for PUBLISH, must be valid URI (either strict or loose), and
         # all URI components must be non-empty
         if self._option_uri_strict:
@@ -150,11 +227,11 @@ class Broker(object):
                 self._router.send(session, reply)
             return
 
-        # disallow publication to topics starting with "wamp." and "crossbar." other than for
-        # trusted sessions (that are sessions built into Crossbar.io)
+        # disallow publication to topics starting with "wamp." other than for
+        # trusted sessions (that are sessions built into Crossbar.io routing core)
         #
         if session._authrole is not None and session._authrole != u"trusted":
-            is_restricted = publish.topic.startswith(u"wamp.") or publish.topic.startswith(u"crossbar.")
+            is_restricted = publish.topic.startswith(u"wamp.")
             if is_restricted:
                 if publish.acknowledge:
                     reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_URI, [u"publish with restricted topic URI '{0}'".format(publish.topic)])
@@ -178,13 +255,19 @@ class Broker(object):
         if store_event:
             self.log.debug('Persisting event on topic "{topic}"', topic=publish.topic)
 
+        # check if the event is to be retained by inspecting the 'retain' flag
+        retain_event = False
+        if publish.retain:
+            retain_event = True
+
         # go on if (otherwise there isn't anything to do anyway):
         #
         #   - there are any active subscriptions OR
         #   - the publish is to be acknowledged OR
-        #   - the event is to be persisted
+        #   - the event is to be persisted OR
+        #   - the event is to be retained
         #
-        if subscriptions or publish.acknowledge or store_event:
+        if subscriptions or publish.acknowledge or store_event or retain_event:
 
             # validate payload
             #
@@ -224,6 +307,23 @@ class Broker(object):
                     if store_event:
                         self._event_store.store_event(session._session_id, publication, publish.topic, publish.args, publish.kwargs)
 
+                    # retain event on the topic
+                    #
+                    if retain_event:
+                        observation = self._subscription_map.get_observation(publish.topic)
+
+                        if not observation:
+                            # No observation, lets make a new one
+                            observation = self._subscription_map.create_observation(publish.topic, extra=SubscriptionExtra())
+
+                        if observation.extra.retained_events:
+                            if not publish.eligible and not publish.exclude:
+                                observation.extra.retained_events = [publish]
+                            else:
+                                observation.extra.retained_events.append(publish)
+                        else:
+                            observation.extra.retained_events = [publish]
+
                     # send publish acknowledge immediately when requested
                     #
                     if publish.acknowledge:
@@ -233,6 +333,14 @@ class Broker(object):
                     # publisher disclosure
                     #
                     if authorization[u'disclose']:
+                        disclose = True
+                    elif (publish.topic.startswith(u"wamp.") or
+                          publish.topic.startswith(u"crossbar.")):
+                        disclose = True
+                    else:
+                        disclose = False
+
+                    if disclose:
                         publisher = session._session_id
                         publisher_authid = session._authid
                         publisher_authrole = session._authrole
@@ -260,33 +368,7 @@ class Broker(object):
                         # initial list of receivers are all subscribers on a subscription ..
                         #
                         receivers = subscription.observers
-
-                        # filter by "eligible" receivers
-                        #
-                        if publish.eligible:
-
-                            # map eligible session IDs to eligible sessions
-                            eligible = []
-                            for session_id in publish.eligible:
-                                if session_id in self._router._session_id_to_session:
-                                    eligible.append(self._router._session_id_to_session[session_id])
-
-                            # filter receivers for eligible sessions
-                            receivers = set(eligible) & receivers
-
-                        # remove "excluded" receivers
-                        #
-                        if publish.exclude:
-
-                            # map excluded session IDs to excluded sessions
-                            exclude = []
-                            for s in publish.exclude:
-                                if s in self._router._session_id_to_session:
-                                    exclude.append(self._router._session_id_to_session[s])
-
-                            # filter receivers for excluded sessions
-                            if exclude:
-                                receivers = receivers - set(exclude)
+                        receivers = self._filter_publish_receivers(receivers, publish)
 
                         # if receivers is non-empty, dispatch event ..
                         #
@@ -321,13 +403,26 @@ class Broker(object):
                                                     publisher_authid=publisher_authid,
                                                     publisher_authrole=publisher_authrole,
                                                     topic=topic)
-                            for receiver in receivers:
-                                if (me_also or receiver != session) and receiver != self._event_store:
-                                    # the receiving subscriber session
-                                    # might have no transport, or no
-                                    # longer be joined
-                                    if receiver._session_id and receiver._transport:
-                                        self._router.send(receiver, msg)
+
+                            # a Deferred that fires when all chunks are done
+                            all_d = txaio.create_future()
+                            chunk_size = self._options.event_dispatching_chunk_size
+
+                            def _notify_some(receivers):
+                                for receiver in receivers[:chunk_size]:
+                                    if (me_also or receiver != session) and receiver != self._event_store:
+                                        # the receiving subscriber session
+                                        # might have no transport, or no
+                                        # longer be joined
+                                        if receiver._session_id and receiver._transport:
+                                            self._router.send(receiver, msg)
+                                receivers = receivers[chunk_size:]
+                                if len(receivers) > 0:
+                                    return txaio.call_later(0, _notify_some, receivers)
+                                else:
+                                    txaio.resolve(all_d, None)
+                            _notify_some(list(receivers))
+                            return all_d
 
             def on_authorize_error(err):
                 """
@@ -384,12 +479,12 @@ class Broker(object):
             if not authorization[u'allow']:
                 # error reply since session is not authorized to subscribe
                 #
-                reply = message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.NOT_AUTHORIZED, [u"session is not authorized to subscribe to topic '{0}'".format(subscribe.topic)])
+                replies = [message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.NOT_AUTHORIZED, [u"session is not authorized to subscribe to topic '{0}'".format(subscribe.topic)])]
 
             else:
                 # ok, session authorized to subscribe. now get the subscription
                 #
-                subscription, was_already_subscribed, is_first_subscriber = self._subscription_map.add_observer(session, subscribe.topic, subscribe.match)
+                subscription, was_already_subscribed, is_first_subscriber = self._subscription_map.add_observer(session, subscribe.topic, subscribe.match, extra=SubscriptionExtra())
 
                 if not was_already_subscribed:
                     self._session_to_subscriptions[session].add(subscription)
@@ -410,13 +505,52 @@ class Broker(object):
                         if not was_already_subscribed:
                             service_session.publish(u'wamp.subscription.on_subscribe', session._session_id, subscription.id)
 
+                # check for retained events
+                #
+                def _get_retained_event():
+
+                    if subscription.extra.retained_events:
+                        retained_events = list(subscription.extra.retained_events)
+                        retained_events.reverse()
+
+                        for publish in retained_events:
+                            authorised = False
+
+                            if not publish.exclude and not publish.eligible:
+                                authorised = True
+                            elif session._session_id in publish.eligible and session._session_id not in publish.exclude:
+                                authorised = True
+
+                            if authorised:
+                                publication = util.id()
+
+                                if publish.payload:
+                                    msg = message.Event(subscription.id,
+                                                        publication,
+                                                        payload=publish.payload,
+                                                        retained=True,
+                                                        enc_algo=publish.enc_algo,
+                                                        enc_key=publish.enc_key,
+                                                        enc_serializer=publish.enc_serializer)
+                                else:
+                                    msg = message.Event(subscription.id,
+                                                        publication,
+                                                        args=publish.args,
+                                                        kwargs=publish.kwargs,
+                                                        retained=True)
+
+                                return [msg]
+                    return []
+
                 # acknowledge subscribe with subscription ID
                 #
-                reply = message.Subscribed(subscribe.request, subscription.id)
+                replies = [message.Subscribed(subscribe.request, subscription.id)]
+                if subscribe.get_retained:
+                    replies.extend(_get_retained_event())
 
             # send out reply to subscribe requestor
             #
-            self._router.send(session, reply)
+            [self._router.send(session, reply) for reply in replies]
 
         def on_authorize_error(err):
             """
@@ -468,6 +602,11 @@ class Broker(object):
         # drop session from subscription observers
         #
         was_subscribed, was_last_subscriber = self._subscription_map.drop_observer(session, subscription)
+        was_deleted = False
+
+        if was_subscribed and was_last_subscriber and not subscription.extra.retained_events:
+            was_deleted = True
+            self._subscription_map.delete_observation(subscription)
 
         # remove subscription from session->subscriptions map
         #
@@ -481,7 +620,7 @@ class Broker(object):
             if service_session and not subscription.uri.startswith(u'wamp.'):
                 if was_subscribed:
                     service_session.publish(u'wamp.subscription.on_unsubscribe', session._session_id, subscription.id)
-                if was_last_subscriber:
+                if was_deleted:
                     service_session.publish(u'wamp.subscription.on_delete', session._session_id, subscription.id)
 
         return was_subscribed, was_last_subscriber

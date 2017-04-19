@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -45,7 +45,9 @@ from twisted.internet.endpoints import TCP4ServerEndpoint, \
     TCP4ClientEndpoint, \
     TCP6ClientEndpoint, \
     UNIXServerEndpoint, \
-    UNIXClientEndpoint
+    UNIXClientEndpoint, \
+    serverFromString,   \
+    clientFromString
 from twisted.python.filepath import FilePath
 
 from crossbar.twisted.sharedport import SharedPort, SharedTLSPort
@@ -54,7 +56,7 @@ try:
     from twisted.internet.endpoints import SSL4ServerEndpoint, \
         SSL4ClientEndpoint
     from OpenSSL import crypto
-    #from OpenSSL.SSL import TLSv1_2_METHOD
+    from OpenSSL.SSL import OP_NO_SSLv3, OP_NO_TLSv1
     from twisted.internet.interfaces import ISSLTransport
 
     _HAS_TLS = True
@@ -221,12 +223,14 @@ def _create_tls_server_context(config, cbdir, log):
         acceptableCiphers=crossbar_ciphers,
 
         # TLS hardening
-        method=TLSv1_2_METHOD,
         enableSingleUseKeys=True,
         enableSessions=False,
         enableSessionTickets=False,
         fixBrokenPeers=False,
     )
+
+    # Disable SSLv3 and TLSv1 -- only do 1.1+
+    ctx._options = ctx._options | OP_NO_SSLv3 | OP_NO_TLSv1
 
     # Without a curve being set, ECDH won't be available even if listed
     # in acceptable ciphers!
@@ -343,7 +347,7 @@ def create_listening_endpoint_from_config(config, cbdir, reactor, log):
             try:
                 port = int(environ[config['port'][1:]])
             except Exception as e:
-                log.warn("Could not read listening port from env var: {}".format(e))
+                log.warn("Could not read listening port from env var: {e}", e=e)
                 raise
         else:
             port = config['port']
@@ -414,6 +418,10 @@ def create_listening_endpoint_from_config(config, cbdir, reactor, log):
         # create the endpoint
         #
         endpoint = UNIXServerEndpoint(reactor, path.path, backlog=backlog)
+
+    # twisted endpoint-string
+    elif config['type'] == 'twisted':
+        endpoint = serverFromString(reactor, config['server_string'])
 
     else:
         raise Exception("invalid endpoint type '{}'".format(config['type']))
@@ -583,6 +591,9 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor, log):
         # create the endpoint
         #
         endpoint = UNIXClientEndpoint(reactor, path, timeout=timeout)
+
+    elif config['type'] == 'twisted':
+        endpoint = clientFromString(reactor, config['client_string'])
 
     else:
         raise Exception("invalid endpoint type '{}'".format(config['type']))

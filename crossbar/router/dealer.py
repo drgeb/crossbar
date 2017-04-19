@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -144,6 +144,7 @@ class Dealer(object):
                                                       progressive_call_results=True,
                                                       registration_revocation=True,
                                                       payload_transparency=True,
+                                                      testament_meta_api=True,
                                                       payload_encryption_cryptobox=True)
 
         # store for call queues
@@ -186,6 +187,9 @@ class Dealer(object):
 
             for registration in self._session_to_registrations[session]:
                 was_registered, was_last_callee = self._registration_map.drop_observer(session, registration)
+
+                if was_registered and was_last_callee:
+                    self._registration_map.delete_observation(registration)
 
                 # publish WAMP meta events
                 #
@@ -242,11 +246,11 @@ class Dealer(object):
             self._router.send(session, reply)
             return
 
-        # disallow registration of procedures starting with "wamp." and  "crossbar." other than for
-        # trusted sessions (that are sessions built into Crossbar.io)
+        # disallow registration of procedures starting with "wamp." other than for
+        # trusted sessions (that are sessions built into Crossbar.io routing core)
         #
         if session._authrole is not None and session._authrole != u"trusted":
-            is_restricted = register.procedure.startswith(u"wamp.") or register.procedure.startswith(u"crossbar.")
+            is_restricted = register.procedure.startswith(u"wamp.")
             if is_restricted:
                 reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.INVALID_URI, [u"register for restricted procedure URI '{0}')".format(register.procedure)])
                 self._router.send(session, reply)
@@ -324,7 +328,7 @@ class Dealer(object):
             different from the call to authorize succeed, but the
             authorization being denied)
             """
-            self.log.failure("Authorization failed", failure=err)
+            self.log.failure("Authorization of 'register' for '{uri}' failed", uri=register.procedure, failure=err)
             reply = message.Error(
                 message.Register.MESSAGE_TYPE,
                 register.request,
@@ -367,6 +371,9 @@ class Dealer(object):
         # drop session from registration observers
         #
         was_registered, was_last_callee = self._registration_map.drop_observer(session, registration)
+
+        if was_registered and was_last_callee:
+            self._registration_map.delete_observation(registration)
 
         # remove registration from session->registrations map
         #
@@ -443,7 +450,6 @@ class Dealer(object):
             d = self._router.authorize(session, call.procedure, u'call')
 
             def on_authorize_success(authorization):
-
                 # the call to authorize the action _itself_ succeeded. now go on depending on whether
                 # the action was actually authorized or not ..
                 #
@@ -460,7 +466,7 @@ class Dealer(object):
                 different from the call to authorize succeed, but the
                 authorization being denied)
                 """
-                self.log.failure("Authorization failed", failure=err)
+                self.log.failure("Authorization of 'call' for '{uri}' failed", uri=call.procedure, failure=err)
                 reply = message.Error(
                     message.Call.MESSAGE_TYPE,
                     call.request,
@@ -582,6 +588,14 @@ class Dealer(object):
         # caller disclosure
         #
         if authorization[u'disclose']:
+            disclose = True
+        elif (call.procedure.startswith(u"wamp.") or
+              call.procedure.startswith(u"crossbar.")):
+            disclose = True
+        else:
+            disclose = False
+
+        if disclose:
             caller = session._session_id
             caller_authid = session._authid
             caller_authrole = session._authrole

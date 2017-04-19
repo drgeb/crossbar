@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -100,6 +100,16 @@ def run():
                         default=None,
                         help='Worker process title to set (optional).')
 
+    parser.add_argument('--expose_controller',
+                        type=bool,
+                        default=False,
+                        help='Expose node controller session to all components (this feature requires Crossbar.io Fabric extension).')
+
+    parser.add_argument('--expose_shared',
+                        type=bool,
+                        default=False,
+                        help='Expose a shared object to all components (this feature requires Crossbar.io Fabric extension).')
+
     options = parser.parse_args()
 
     # make sure logging to something else than stdio is setup _first_
@@ -124,8 +134,17 @@ def run():
     from autobahn.twisted.choosereactor import install_reactor
     reactor = install_reactor(options.reactor)
 
+    WORKER_TYPE_TO_TITLE = {
+        'router': 'Router',
+        'container': 'Container',
+        'websocket-testee': 'WebSocket Testee'
+    }
+
     from twisted.python.reflect import qual
-    log.info("Worker process starting ({python}-{reactor}) ..",
+    log.info('{worker_title} worker "{worker_id}" process {pid} starting on {python}-{reactor} ..',
+             worker_title=WORKER_TYPE_TO_TITLE[options.type],
+             worker_id=options.worker,
+             pid=os.getpid(),
              python=platform.python_implementation(),
              reactor=qual(reactor.__class__).split('.')[-1])
 
@@ -139,12 +158,12 @@ def run():
         if options.title:
             setproctitle.setproctitle(options.title)
         else:
-            WORKER_TYPE_TO_TITLE = {
+            WORKER_TYPE_TO_PROCESS_TITLE = {
                 'router': 'crossbar-worker [router]',
                 'container': 'crossbar-worker [container]',
                 'websocket-testee': 'crossbar-worker [websocket-testee]'
             }
-            setproctitle.setproctitle(WORKER_TYPE_TO_TITLE[options.type].strip())
+            setproctitle.setproctitle(WORKER_TYPE_TO_PROCESS_TITLE[options.type].strip())
 
     # node directory
     #
@@ -256,7 +275,7 @@ def run():
             reactor.run()
 
     except Exception as e:
-        log.info("Unhandled exception: {}".format(e))
+        log.info("Unhandled exception: {e}", e=e)
         if reactor.running:
             reactor.addSystemEventTrigger('after', 'shutdown', os._exit, 1)
             reactor.stop()

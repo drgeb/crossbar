@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -114,23 +114,23 @@ def set_websocket_options(factory, options):
 
             params = c['compression']['deflate']
 
-            requestNoContextTakeover = params.get('request_no_context_takeover', False)
-            requestMaxWindowBits = params.get('request_max_window_bits', 0)
-            noContextTakeover = params.get('no_context_takeover', None)
-            windowBits = params.get('max_window_bits', None)
-            memLevel = params.get('memory_level', None)
+            request_no_context_takeover = params.get('request_no_context_takeover', False)
+            request_max_window_bits = params.get('request_max_window_bits', 0)
+            no_context_takeover = params.get('no_context_takeover', None)
+            window_bits = params.get('max_window_bits', None)
+            mem_level = params.get('memory_level', None)
 
             def accept(offers):
                 for offer in offers:
                     if isinstance(offer, PerMessageDeflateOffer):
-                        if (requestMaxWindowBits == 0 or offer.acceptMaxWindowBits) and \
-                           (not requestNoContextTakeover or offer.acceptNoContextTakeover):
+                        if (request_max_window_bits == 0 or offer.accept_max_window_bits) and \
+                           (not request_no_context_takeover or offer.accept_no_context_takeover):
                             return PerMessageDeflateOfferAccept(offer,
-                                                                requestMaxWindowBits=requestMaxWindowBits,
-                                                                requestNoContextTakeover=requestNoContextTakeover,
-                                                                noContextTakeover=noContextTakeover,
-                                                                windowBits=windowBits,
-                                                                memLevel=memLevel)
+                                                                request_max_window_bits=request_max_window_bits,
+                                                                request_no_context_takeover=request_no_context_takeover,
+                                                                no_context_takeover=no_context_takeover,
+                                                                window_bits=window_bits,
+                                                                mem_level=mem_level)
             per_msg_compression = accept
 
     factory.setProtocolOptions(
@@ -176,11 +176,14 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
             from twisted.internet import reactor
 
             def print_traffic():
-                self.log.info("Traffic {}: {} / {} in / out bytes - {} / {} in / out msgs".format(self.peer,
-                                                                                                  self.trafficStats.incomingOctetsWireLevel,
-                                                                                                  self.trafficStats.outgoingOctetsWireLevel,
-                                                                                                  self.trafficStats.incomingWebSocketMessages,
-                                                                                                  self.trafficStats.outgoingWebSocketMessages))
+                self.log.info(
+                    "Traffic {peer}: {wire_in} / {wire_out} in / out bytes - {ws_in} / {ws_out} in / out msgs",
+                    peer=self.peer,
+                    wire_in=self.trafficStats.incomingOctetsWireLevel,
+                    wire_out=self.trafficStats.outgoingOctetsWireLevel,
+                    ws_in=self.trafficStats.incomingWebSocketMessages,
+                    ws_out=self.trafficStats.outgoingWebSocketMessages,
+                )
                 reactor.callLater(1, print_traffic)
 
             print_traffic()
@@ -228,27 +231,27 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                 # associated with the same cookie
                 self.factory._cookiestore.addProto(self._cbtid, self)
 
-                self.log.debug("Cookie tracking enabled on WebSocket connection {}".format(self))
+                self.log.debug("Cookie tracking enabled on WebSocket connection {ws}", ws=self)
 
                 # if cookie-based authentication is enabled, set auth info from cookie store
                 #
                 if 'auth' in self.factory._config and 'cookie' in self.factory._config['auth']:
 
-                    self._authid, self._authrole, self._authmethod, self._authrealm = self.factory._cookiestore.getAuth(self._cbtid)
+                    self._authid, self._authrole, self._authmethod, self._authrealm, authextra = self.factory._cookiestore.getAuth(self._cbtid)
 
                     if self._authid:
                         # there is a cookie set, and the cookie was previously successfully authenticated,
                         # so immediately authenticate the client using that information
                         self._authprovider = u'cookie'
-                        self.log.debug("Authenticated client via cookie cbtid={cbtid} as authid={authid}, authrole={authrole}, authmethod={authmethod}, authrealm={authrealm}",
-                                       cbtid=self._cbtid, authid=self._authid, authrole=self._authrole, authmethod=self._authmethod, authrealm=self._authrealm)
+                        self.log.debug("Authenticated client via cookie {cookiename}={cbtid} as authid={authid}, authrole={authrole}, authmethod={authmethod}, authrealm={authrealm}",
+                                       cookiename=self.factory._cookiestore._cookie_id_field, cbtid=self._cbtid, authid=self._authid, authrole=self._authrole, authmethod=self._authmethod, authrealm=self._authrealm)
                     else:
                         # there is a cookie set, but the cookie wasn't authenticated yet using a different auth method
                         self.log.debug("Cookie-based authentication enabled, but cookie isn't authenticated yet")
                 else:
                     self.log.debug("Cookie-based authentication disabled")
             else:
-                self.log.debug("Cookie tracking disabled on WebSocket connection {}".format(self))
+                self.log.debug("Cookie tracking disabled on WebSocket connection {ws}", ws=self)
 
             # remember transport level info for later forwarding in
             # WAMP meta event "wamp.session.on_join"
@@ -257,8 +260,23 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                 u'type': 'websocket',
                 u'protocol': protocol,
                 u'peer': self.peer,
+
+                # all HTTP headers as received by the WebSocket client
                 u'http_headers_received': request.headers,
+
+                # only customer user headers (such as cookie)
                 u'http_headers_sent': headers,
+
+                # all HTTP response lines sent (verbatim, in order as sent)
+                # this will get filled in onOpen() from the HTTP response
+                # data that will be stored by AutobahnPython at the WebSocket
+                # protocol level (WebSocketServerProtocol)
+                # u'http_response_lines': None,
+
+                # WebSocket extensions in use .. will be filled in onOpen() - see below
+                u'websocket_extensions_in_use': None,
+
+                # Crossbar.io tracking ID (for cookie tracking)
                 u'cbtid': self._cbtid
             }
 
@@ -269,6 +287,21 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
 
         except Exception:
             traceback.print_exc()
+
+    def onOpen(self):
+        if False:
+            # this is little bit silly, we parse the complete response data into lines again
+            http_response_lines = []
+            for line in self.http_response_data.split('\r\n'):
+                line = line.strip()
+                if line:
+                    http_response_lines.append(line)
+            self._transport_info[u'http_response_lines'] = http_response_lines
+
+        # note the WebSocket extensions negotiated
+        self._transport_info[u'websocket_extensions_in_use'] = [e.__json__() for e in self.websocket_extensions_in_use]
+
+        return super(WampWebSocketServerProtocol, self).onOpen()
 
     def sendServerStatus(self, redirectUrl=None, redirectAfter=0):
         """
@@ -454,9 +487,13 @@ class WampRawSocketServerProtocol(rawsocket.WampRawSocketServerProtocol):
         #
         self._transport_info = {
             u'type': 'rawsocket',
-            u'protocol': None,  # FIXME
+            u'protocol': None,
             u'peer': self.peer
         }
+
+    def _on_handshake_complete(self):
+        self._transport_info[u'protocol'] = u'wamp.2.{}'.format(self._serializer.SERIALIZER_ID)
+        return rawsocket.WampRawSocketServerProtocol._on_handshake_complete(self)
 
     def lengthLimitExceeded(self, length):
         self.log.error("failing RawSocket connection - message length exceeded: message was {len} bytes, but current maximum is {maxlen} bytes",

@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -84,7 +84,7 @@ class Router(object):
         :param realm: The realm this router is working for.
         :type realm: str
         :param options: Router options.
-        :type options: Instance of :class:`autobahn.wamp.types.RouterOptions`.
+        :type options: Instance of :class:`crossbar.router.RouterOptions`.
         """
         self._factory = factory
         self._options = options or RouterOptions()
@@ -98,6 +98,10 @@ class Router(object):
 
         # map: session_id -> session
         self._session_id_to_session = {}
+        # map: authid -> set(session)
+        self._authid_to_sessions = {}
+        # map: authrole -> set(session)
+        self._authrole_to_sessions = {}
 
         self._broker = self.broker(self, self._options)
         self._dealer = self.dealer(self, self._options)
@@ -137,6 +141,35 @@ class Router(object):
 
         return {u'broker': self._broker._role_features, u'dealer': self._dealer._role_features}
 
+    def _session_joined(self, session, details):
+        """
+        Internal helper.
+        """
+        try:
+            self._authrole_to_sessions[details['authrole']].add(session)
+        except KeyError:
+            self._authrole_to_sessions[details['authrole']] = set([session])
+
+        try:
+            self._authid_to_sessions[details['authid']].add(session)
+        except KeyError:
+            self._authid_to_sessions[details['authid']] = set([session])
+
+        # log session details, but skip Crossbar.io internal sessions
+        if self.realm != u'crossbar':
+            self.log.info('>>>>> session {session_id} JOINED "{realm}" >>>>>\n\n{details}\n', session_id=details[u'session'], realm=self.realm, details=details)
+
+    def _session_left(self, session, details):
+        """
+        Internal helper.
+        """
+        self._authid_to_sessions[details['authid']].discard(session)
+        self._authrole_to_sessions[details['authrole']].discard(session)
+
+        # log session details, but skip Crossbar.io internal sessions
+        if self.realm != u'crossbar':
+            self.log.info('<<<<<< session {session_id} LEFT "{realm}" <<<<<<\n\n{details}\n', session_id=details[u'session'], realm=self.realm, details=details)
+
     def detach(self, session):
         """
         Implements :func:`autobahn.wamp.interfaces.IRouter.detach`
@@ -166,7 +199,10 @@ class Router(object):
     def send(self, session, msg):
         if self._check_trace(session, msg):
             self.log.info("<<TX<< {msg}", msg=msg)
-        session._transport.send(msg)
+        if session._transport:
+            session._transport.send(msg)
+        else:
+            self.log.warn('skip sending msg - transport already closed')
 
     def process(self, session, msg):
         """
@@ -290,7 +326,7 @@ class Router(object):
 
         def got_authorization(authorization):
             # backward compatibility
-            if type(authorization) == bool:
+            if isinstance(authorization, bool):
                 authorization = {
                     u'allow': authorization,
                     u'cache': False
@@ -337,7 +373,7 @@ class RouterFactory(object):
         """
 
         :param options: Default router options.
-        :type options: Instance of :class:`autobahn.wamp.types.RouterOptions`.
+        :type options: Instance of :class:`crossbar.router.RouterOptions`.
         """
         self._routers = {}
         self._options = options or RouterOptions(uri_check=RouterOptions.URI_CHECK_LOOSE)
@@ -406,18 +442,27 @@ class RouterFactory(object):
 
         # now create a router for the realm
         #
-        router = Router(self, realm, self._options, store=store)
+        options = RouterOptions(
+            uri_check=self._options.uri_check,
+            event_dispatching_chunk_size=self._options.event_dispatching_chunk_size,
+        )
+        for arg in ['uri_check', 'event_dispatching_chunk_size']:
+            if arg in realm.config.get('options', {}):
+                setattr(options, arg, realm.config['options'][arg])
+
+        router = Router(self, realm, options, store=store)
+
         self._routers[uri] = router
         self.log.debug("Router created for realm '{uri}'", uri=uri)
 
         return router
 
     def stop_realm(self, realm):
-        self.log.debug("CrossbarRouterFactory.stop_realm(realm = {realm})",
+        self.log.debug('CrossbarRouterFactory.stop_realm(realm="{realm}")',
                        realm=realm)
 
     def add_role(self, realm, config):
-        self.log.debug("CrossbarRouterFactory.add_role(realm = {realm}, config = {config})",
+        self.log.debug('CrossbarRouterFactory.add_role(realm="{realm}", config={config})',
                        realm=realm, config=config)
 
         assert(type(realm) == six.text_type)
@@ -437,8 +482,30 @@ class RouterFactory(object):
         router.add_role(role)
 
     def drop_role(self, realm, role):
-        self.log.debug("CrossbarRouterFactory.drop_role(realm = {realm}, role = {role})",
+        """
+        Drop a role.
+
+        :param realm: The name of the realm to drop.
+        :type realm: str
+        :param role: The URI of the role (on the realm) to drop.
+        :type role: str
+        """
+        self.log.debug('CrossbarRouterFactory.drop_role(realm="{realm}", role={role})',
                        realm=realm, role=role)
+
+        assert(type(realm) == six.text_type)
+        assert(type(role) == six.text_type)
+
+        if realm not in self._routers:
+            raise Exception('no router started for realm "{}"'.format(realm))
+
+        router = self._routers[realm]
+
+        if role not in router._roles:
+            raise Exception('no role "{}" started on router for realm "{}"'.format(role, realm))
+
+        role = router._roles[role]
+        router.drop_role(role)
 
     def auto_start_realm(self, realm):
         raise Exception("realm auto-activation (realm '{}') not yet implemented".format(realm))

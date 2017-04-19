@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -58,110 +58,9 @@ class Templates:
             "help": "A WAMP router speaking WebSocket plus a static Web server.",
             "basedir": "templates/default",
             "params": {
-            }
-        },
-
-        {
-            "name": "hello:python",
-            "help": "A minimal Python WAMP application hosted in a router and a HTML5 client.",
-            "basedir": "templates/hello/python",
-            "params": {
-            }
-        },
-
-        {
-            "name": "hello:nodejs",
-            "help": "A minimal NodeJS WAMP application hosted in a router and a HTML5 client.",
-            "get_started_hint": "Now install dependencies by doing 'npm install', start Crossbar using 'crossbar start' and open http://localhost:8080 in your browser.",
-            "basedir": "templates/hello/nodejs",
-            "params": {
-                "appname": "hello",
-                "realm": "realm1",
-                "url": "ws://127.0.0.1:8080/ws"
-            }
-        },
-
-        {
-            "name": "hello:browser",
-            "help": "A minimal JavaAScript WAMP application with two components running in the browser.",
-            "get_started_hint": "Start Crossbar using 'crossbar start' and open http://localhost:8080 in your browser.",
-            "basedir": "templates/hello/browser",
-            "params": {
-                "realm": "realm1",
-            }
-        },
-
-
-        {
-            "name": "hello:cpp",
-            "help": "A minimal C++11/AutobahnCpp WAMP application hosted in a router and a HTML5 client.",
-            "get_started_hint": "Now build the example by doing 'scons', start Crossbar using 'crossbar start' and open http://localhost:8080 in your browser.",
-            "basedir": "templates/hello/cpp",
-            "params": {
             },
-        },
-
-        {
-            "name": "hello:csharp",
-            "help": "A minimal C#/WampSharp WAMP application hosted in a router and a HTML5 client.",
-            "get_started_hint": "Now build by opening 'src/Hello/Hello.sln' in Visual Studio, start Crossbar using 'crossbar start' and open http://localhost:8080 in your browser.",
-            "basedir": "templates/hello/csharp",
-            "params": {
-            },
-            "skip_jinja": []
-        },
-
-        {
-            "name": "hello:erlang",
-            "help": "A minimal Erlang/Erwa WAMP application hosted in a router and a HTML5 client.",
-            "get_started_hint": "Now build the Erlang/Erwa client by entering 'make', start Crossbar using 'crossbar start' and open http://localhost:8080 in your browser.",
-            "basedir": "templates/hello/erlang",
-            "params": {
-            },
-
-            # due to Erlang's common use of "{{" and "}}" in syntax, we reconfigure
-            # the escape characters used in Jinja templates
-            "jinja": {
-                "block_start_string": "@@",
-                "block_end_string": "@@",
-                "variable_start_string": "@=",
-                "variable_end_string": "=@",
-                "comment_start_string": "@#",
-                "comment_end_string": "#@",
-            },
-
-            # we need to skip binary files from being processed by Jinja
-            #
-            "skip_jinja": ["relx"]
-        },
-
-        {
-            "name": "hello:php",
-            "help": "A minimal PHP/Thruway WAMP application hosted in a router and a HTML5 client.",
-            "get_started_hint": "Now install dependencies for the PHP/Thruway client by entering 'make install', start Crossbar using 'crossbar start' and open http://localhost:8080 in your browser.",
-            "basedir": "templates/hello/php",
-            "params": {
-            },
-        },
-
-        {
-            "name": "hello:java",
-            "help": "A minimal Java/jawampa WAMP application hosted in a router and a HTML5 client.",
-            "get_started_hint": "Please follow the README.md to build the Java component first, then start Crossbar using 'crossbar start' and open http://localhost:8080 in your browser.",
-            "basedir": "templates/hello/java",
-            "params": {
-            },
-        },
-
-        {
-            "name": "hello:tessel",
-            "help": "A minimal JavaScript/wamp-tessel WAMP application running on a Tessel and with a HTML5 client.",
-            "get_started_hint": "Please follow the README.md to install npm dependencies, then start Crossbar using 'crossbar start', open http://localhost:8080 in your browser, and do 'tessel run tessel/hello.js'.",
-            "basedir": "templates/hello/tessel",
-            "params": {
-            },
-        },
-
+            "skip_jinja": ["autobahn.js", "autobahn.min.js", "autobahn.min.jgz"]
+        }
     ]
     """
     Application template definitions.
@@ -218,7 +117,7 @@ class Templates:
         basedir = pkg_resources.resource_filename("crossbar", template['basedir'])
         if IS_WIN:
             basedir = basedir.replace('\\', '/')  # Jinja need forward slashes even on Windows
-        self.log.info("Using template from '{}'".format(basedir))
+        self.log.info("Using template from '{dir}'", dir=basedir)
 
         appdir = os.path.abspath(appdir)
 
@@ -249,9 +148,9 @@ class Templates:
                             self.log.info(msg)
                             raise Exception(msg)
                         else:
-                            self.log.warn("{} - SKIPPING".format(msg))
+                            self.log.warn("{msg} - SKIPPING", msg=msg)
                     else:
-                        self.log.info("Creating directory {}".format(create_dir_path))
+                        self.log.info("Creating directory {dir}", dir=create_dir_path)
                         if not dryrun:
                             os.mkdir(create_dir_path)
                         created.append(('dir', create_dir_path))
@@ -275,9 +174,9 @@ class Templates:
                                 self.log.info(msg)
                                 raise Exception(msg)
                             else:
-                                self.log.warn("{} - SKIPPING".format(msg))
+                                self.log.warn("{msg} - SKIPPING", msg=msg)
                         else:
-                            self.log.info("Creating file {}".format(dst_file))
+                            self.log.info("Creating file {name}", name=dst_file)
                             if not dryrun:
                                 if f in template.get('skip_jinja', []):
                                     shutil.copy(src_file, dst_file)
@@ -302,18 +201,18 @@ class Templates:
             for ptype, path in reversed(created):
                 if ptype == 'file':
                     try:
-                        self.log.info("Removing file {}".format(path))
+                        self.log.info("Removing file {path}", path=path)
                         if not dryrun:
                             os.remove(path)
                     except:
-                        self.log.warn("Warning: could not remove file {}".format(path))
+                        self.log.warn("Warning: could not remove file {path}", path=path)
                 elif ptype == 'dir':
                     try:
-                        self.log.info("Removing directory {}".format(path))
+                        self.log.info("Removing directory {path}", path=path)
                         if not dryrun:
                             os.rmdir(path)
                     except:
-                        self.log.warn("Warning: could not remove directory {}".format(path))
+                        self.log.warn("Warning: could not remove directory {path}", path=path)
                 else:
                     raise Exception("logic error")
             raise

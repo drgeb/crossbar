@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -59,7 +59,7 @@ from autobahn.websocket.protocol import WebSocketProtocol
 from autobahn.websocket.utf8validator import Utf8Validator
 from autobahn.websocket.xormasker import XorMaskerNull
 
-from crossbar.controller.node import Node, _read_release_pubkey, _read_node_pubkey
+from crossbar.controller.node import _read_release_pubkey, _read_node_pubkey
 from crossbar.controller.template import Templates
 from crossbar.common.checkconfig import check_config_file, \
     color_json, convert_config_file, upgrade_config_file, InvalidConfigException
@@ -90,14 +90,45 @@ except ImportError:
 
 __all__ = ('run',)
 
-# http://patorjk.com/software/taag/#p=display&h=1&f=Stick%20Letters&t=Crossbar.io
-BANNER = r"""     __  __  __  __  __  __      __     __
-    /  `|__)/  \/__`/__`|__) /\ |__)  |/  \
-    \__,|  \\__/.__/.__/|__)/~~\|  \. |\__/
-
-"""
-
 _PID_FILENAME = 'node.pid'
+
+
+def get_node_classes():
+    """
+    Get Node classes which implement node personalities.
+
+    :returns: Dict with node classes and aux info.
+    :rtype: dict
+    """
+    res = {}
+    for entrypoint in pkg_resources.iter_entry_points('crossbar.node'):
+        e = entrypoint.load()
+        ep = {
+            u'class': e,
+            u'dist': entrypoint.dist.key,
+            u'version': entrypoint.dist.version,
+        }
+        if hasattr(e, '__doc__') and e.__doc__:
+            ep[u'doc'] = e.__doc__.strip()
+        else:
+            ep[u'doc'] = None
+        res[entrypoint.name] = ep
+    return res
+
+
+# load all node personality classes
+node_classes = get_node_classes()
+
+# default is "community"
+node_default_personality = u'community'
+
+# however, if available, choose "fabric" as default
+if u'fabric' in node_classes:
+    node_default_personality = u'fabric'
+
+# however, if available, choose "fabricservice" as default
+if u'fabricservice' in node_classes:
+    node_default_personality = u'fabricservice'
 
 
 def check_pid_exists(pid):
@@ -184,9 +215,9 @@ def check_is_running(cbdir):
                                 nicecmdline = ' '.join(cmdline)
                                 if len(nicecmdline) > 76:
                                     nicecmdline = nicecmdline[:38] + ' ... ' + nicecmdline[-38:]
-                                log.info('"{}" points to PID {} which is not a crossbar process:'.format(fp, pid))
-                                log.info('  ' + nicecmdline)
-                                log.info('Verify manually and either kill {} or delete {}'.format(pid, fp))
+                                log.info('"{fp}" points to PID {pid} which is not a crossbar process:', fp=fp, pid=pid)
+                                log.info('  {cmdline}', cmdline=nicecmdline)
+                                log.info('Verify manually and either kill {pid} or delete {fp}', pid=pid, fp=fp)
                                 return None
                         return pid_data
                     else:
@@ -259,7 +290,14 @@ def run_command_version(options, reactor=None, **kwargs):
 
     # JSON Serializer
     supported_serializers = ['JSON']
-    json_ver = 'stdlib'
+    from autobahn.wamp.serializer import JsonObjectSerializer
+    json_ver = JsonObjectSerializer.JSON_MODULE.__name__
+
+    # If it's just 'json' then it's the stdlib one...
+    if json_ver == 'json':
+        json_ver = 'stdlib'
+    else:
+        json_ver = (json_ver + "-%s") % pkg_resources.require(json_ver)[0].version
 
     # MsgPack Serializer
     try:
@@ -293,34 +331,62 @@ def run_command_version(options, reactor=None, **kwargs):
     except ImportError:
         lmdb_ver = '-'
 
+    # crossbarfabric (only Crossbar.io FABRIC)
+    try:
+        import crossbarfabric  # noqa
+        crossbarfabric_ver = '%s' % pkg_resources.require('crossbarfabric')[0].version
+    except ImportError:
+        crossbarfabric_ver = '-'
+
+    # crossbarfabricservice (only Crossbar.io FABRIC CENTER)
+    try:
+        import crossbarfabricservice  # noqa
+        crossbarfabricservice_ver = '%s' % pkg_resources.require('crossbarfabricservice')[0].version
+    except ImportError:
+        crossbarfabricservice_ver = '-'
+
+    # txaio-etcd (only Crossbar.io FABRIC CENTER)
+    try:
+        import txaioetcd  # noqa
+        txaioetcd_ver = '%s' % pkg_resources.require('txaioetcd')[0].version
+    except ImportError:
+        txaioetcd_ver = '-'
+
     # Release Public Key
     release_pubkey = _read_release_pubkey()
 
     def decorate(text):
         return click.style(text, fg='yellow', bold=True)
 
-    for line in BANNER.splitlines():
+    Node = node_classes[options.personality][u'class']
+
+    for line in Node.BANNER.splitlines():
         log.info(decorate("{:>40}".format(line)))
 
     pad = " " * 22
 
-    log.info(" Crossbar.io        : {ver}", ver=decorate(crossbar.__version__))
+    log.info(" Crossbar.io        : {ver} ({personality})", ver=decorate(crossbar.__version__), personality=Node.PERSONALITY)
     log.info("   Autobahn         : {ver} (with {serializers})", ver=decorate(ab_ver), serializers=', '.join(supported_serializers))
     log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(ab_loc))
-    log.debug("     txaio             : {ver}", ver=decorate(txaio_ver))
-    log.debug("     UTF8 Validator    : {ver}", ver=decorate(utf8_ver))
+    log.debug("     txaio          : {ver}", ver=decorate(txaio_ver))
+    log.debug("     UTF8 Validator : {ver}", ver=decorate(utf8_ver))
     log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(utf8_loc))
-    log.debug("     XOR Masker        : {ver}", ver=decorate(xor_ver))
+    log.debug("     XOR Masker     : {ver}", ver=decorate(xor_ver))
     log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(xor_loc))
-    log.debug("     JSON Codec        : {ver}", ver=decorate(json_ver))
-    log.debug("     MessagePack Codec : {ver}", ver=decorate(msgpack_ver))
-    log.debug("     CBOR Codec        : {ver}", ver=decorate(cbor_ver))
-    log.debug("     UBJSON Codec      : {ver}", ver=decorate(ubjson_ver))
+    log.debug("     JSON Codec     : {ver}", ver=decorate(json_ver))
+    log.debug("     MsgPack Codec  : {ver}", ver=decorate(msgpack_ver))
+    log.debug("     CBOR Codec     : {ver}", ver=decorate(cbor_ver))
+    log.debug("     UBJSON Codec   : {ver}", ver=decorate(ubjson_ver))
     log.info("   Twisted          : {ver}", ver=decorate(tx_ver))
     log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(tx_loc))
     log.info("   LMDB             : {ver}", ver=decorate(lmdb_ver))
     log.info("   Python           : {ver}/{impl}", ver=decorate(py_ver), impl=decorate(py_ver_detail))
     log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(py_ver_string))
+    if options.personality in (u'fabric', u'fabricservice'):
+        log.info(" Crossbar.io Fabric : {ver}", ver=decorate(crossbarfabric_ver))
+    if options.personality == u'fabricservice':
+        log.info(" Crossbar.io FC     : {ver}", ver=decorate(crossbarfabricservice_ver))
+        log.debug("   txaioetcd        : {ver}", ver=decorate(txaioetcd_ver))
     log.info(" OS                 : {ver}", ver=decorate(platform.platform()))
     log.info(" Machine            : {ver}", ver=decorate(platform.machine()))
     log.info(" Release key        : {release_pubkey}", release_pubkey=decorate(release_pubkey[u'base64']))
@@ -392,7 +458,7 @@ def run_command_init(options, **kwargs):
     log.info("Application template initialized")
 
     if get_started_hint:
-        log.info("\n{}\n".format(get_started_hint))
+        log.info("\n{hint}\n", hint=get_started_hint)
     else:
         log.info("\nTo start your node, run 'crossbar start --cbdir {cbdir}'\n",
                  cbdir=os.path.abspath(os.path.join(options.appdir, '.crossbar')))
@@ -591,11 +657,27 @@ def run_command_start(options, reactor=None):
 
     # represents the running Crossbar.io node
     #
+    Node = node_classes[options.personality][u'class']
     node = Node(options.cbdir, reactor=reactor)
 
     # possibly generate new node key
     #
     pubkey = node.maybe_generate_key(options.cbdir)
+
+    # Print the banner.
+    #
+    for line in Node.BANNER.splitlines():
+        log.info(click.style(("{:>40}").format(line), fg='yellow', bold=True))
+
+    bannerFormat = "{:<12} {:<24}"
+    log.info(bannerFormat.format("Version:", click.style('{} {}'.format(node.PERSONALITY, crossbar.__version__), fg='yellow', bold=True)))
+    if pubkey:
+        log.info(bannerFormat.format("Public Key:", click.style(pubkey, fg='yellow', bold=True)))
+    log.info()
+
+    log.info('Node starting with personality "{node_personality}" [{node_class}]', node_personality=options.personality, node_class='{}.{}'.format(Node.__module__, Node.__name__))
+
+    log.info('Running from node directory "{cbdir}"', cbdir=options.cbdir)
 
     # check and load the node configuration
     #
@@ -608,44 +690,41 @@ def run_command_start(options, reactor=None):
     except:
         raise
 
-    # Print the banner.
-    #
-    for line in BANNER.splitlines():
-        log.info(click.style(("{:>40}").format(line), fg='yellow', bold=True))
-
-    # bannerFormat = "{:<18} {:<24}"
-    bannerFormat = "    {} {}"
-    log.info(bannerFormat.format("Crossbar.io Version:", click.style(crossbar.__version__, fg='yellow', bold=True)))
-    if pubkey:
-        log.info(bannerFormat.format("Node Public Key:", click.style(pubkey, fg='yellow', bold=True)))
-    log.info()
-
-    log.info("Running from node directory '{cbdir}'", cbdir=options.cbdir)
-
-    log.info("Controller process starting ({python}-{reactor}) ..",
+    log.info("Controller process starting [{python}-{reactor}] ..",
              python=platform.python_implementation(),
              reactor=qual(reactor.__class__).split('.')[-1])
 
     # now actually start the node ..
     #
     def start_crossbar():
-        d = node.start(cdc_mode=options.cdc)
+        d = node.start()
 
         def on_error(err):
             log.error("{e!s}", e=err.value)
-            log.error("Could not start node: {err}".format(err))
+            log.error("Could not start node: {err}", err=err)
             if reactor.running:
                 reactor.stop()
         d.addErrback(on_error)
 
     reactor.callWhenRunning(start_crossbar)
 
-    # enter event loop
+    def after_reactor_stopped():
+        # FIXME: we are indeed reaching this line, however,
+        # the log output does not work (it also doesnt work using
+        # plain old print). Dunno why.
+        log.info('Node has been shut down [after_reactor_stopped].')
+
+    reactor.addSystemEventTrigger('after', 'shutdown', after_reactor_stopped)
+
+    # now enter event loop ..
     #
     try:
         reactor.run()
     except Exception:
         log.failure("Could not start reactor - {log_failure.value}")
+
+    # this line is _never_ reached! Twisted reactor will sys.exit() before
+    # under all circumstances
 
 
 def run_command_restart(options, **kwargs):
@@ -769,6 +848,12 @@ def run(prog=None, args=None, reactor=None):
     parser_version = subparsers.add_parser('version',
                                            help='Print software versions.')
 
+    parser_version.add_argument('--personality',
+                                type=six.text_type,
+                                default=node_default_personality,
+                                choices=sorted(node_classes.keys()),
+                                help=("Node personality to run."))
+
     parser_version.add_argument('--loglevel',
                                 **loglevel_args)
     parser_version.add_argument('--colour',
@@ -824,11 +909,6 @@ def run(prog=None, args=None, reactor=None):
 
     parser_start.set_defaults(func=run_command_start)
 
-    parser_start.add_argument('--cdc',
-                              action='store_true',
-                              default=False,
-                              help='Start node in managed mode, connecting to Crossbar.io DevOps Center (CDC).')
-
     parser_start.add_argument('--cbdir',
                               type=six.text_type,
                               default=None,
@@ -838,6 +918,12 @@ def run(prog=None, args=None, reactor=None):
                               type=six.text_type,
                               default=None,
                               help="Crossbar.io configuration file (overrides default CBDIR/config.json)")
+
+    parser_start.add_argument('--personality',
+                              type=six.text_type,
+                              default=node_default_personality,
+                              choices=sorted(node_classes.keys()),
+                              help=("Node personality to run."))
 
     parser_start.add_argument('--logdir',
                               type=six.text_type,
@@ -1002,7 +1088,7 @@ def run(prog=None, args=None, reactor=None):
                 try:
                     os.mkdir(options.logdir)
                 except Exception as e:
-                    print("Could not create log directory: {}".format(e))
+                    print("Could not create log directory: {e}".format(e))
                     sys.exit(1)
 
     if not reactor:
