@@ -90,6 +90,7 @@ class RouterServiceSession(ApplicationSession):
         if True:
             procs = [
                 (u'wamp.session.list', self.session_list),
+                (u'wamp.session.summary', self.session_summary),
                 (u'wamp.session.count', self.session_count),
                 (u'wamp.session.get', self.session_get),
                 (u'wamp.session.kill', self.session_kill),
