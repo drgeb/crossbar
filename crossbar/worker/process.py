@@ -30,6 +30,8 @@
 
 from __future__ import absolute_import, print_function
 
+import importlib
+
 import six
 
 from twisted.internet.error import ReactorNotRunning
@@ -46,6 +48,23 @@ def run():
     import sys
     import platform
     import signal
+
+    # make sure logging to something else than stdio is setup _first_
+    #
+    from crossbar._logging import make_JSON_observer, cb_logging_aware
+    from txaio import make_logger, start_logging
+    from twisted.logger import globalLogPublisher
+    from twisted.python.reflect import qual
+
+    log = make_logger()
+
+    # Print a magic phrase that tells the capturing logger that it supports
+    # Crossbar's rich logging
+    print(cb_logging_aware, file=sys.__stderr__)
+    sys.__stderr__.flush()
+
+    flo = make_JSON_observer(sys.__stderr__)
+    globalLogPublisher.addObserver(flo)
 
     # Ignore SIGINT so we get consistent behavior on control-C versus
     # sending SIGINT to the controller process. When the controller is
@@ -85,10 +104,15 @@ def run():
                         type=six.text_type,
                         help='Crossbar.io node (management) realm (required).')
 
-    parser.add_argument('-t',
-                        '--type',
-                        choices=['router', 'container', 'websocket-testee'],
-                        help='Worker type (required).')
+    parser.add_argument('-k',
+                        '--klass',
+                        type=six.text_type,
+                        help='Crossbar.io worker class (required).')
+
+    parser.add_argument('-n',
+                        '--node',
+                        type=six.text_type,
+                        help='Crossbar.io node ID (required).')
 
     parser.add_argument('-w',
                         '--worker',
@@ -110,23 +134,14 @@ def run():
                         default=False,
                         help='Expose a shared object to all components (this feature requires Crossbar.io Fabric extension).')
 
+    parser.add_argument('--shutdown',
+                        type=six.text_type,
+                        default=None,
+                        help='Shutdown method')
+
     options = parser.parse_args()
 
-    # make sure logging to something else than stdio is setup _first_
-    #
-    from crossbar._logging import make_JSON_observer, cb_logging_aware
-    from txaio import make_logger, start_logging
-    from twisted.logger import globalLogPublisher
-
-    log = make_logger()
-
-    # Print a magic phrase that tells the capturing logger that it supports
-    # Crossbar's rich logging
-    print(cb_logging_aware, file=sys.__stderr__)
-    sys.__stderr__.flush()
-
-    flo = make_JSON_observer(sys.__stderr__)
-    globalLogPublisher.addObserver(flo)
+    # actually begin logging
     start_logging(None, options.loglevel)
 
     # we use an Autobahn utility to import the "best" available Twisted reactor
@@ -134,19 +149,24 @@ def run():
     from autobahn.twisted.choosereactor import install_reactor
     reactor = install_reactor(options.reactor)
 
-    WORKER_TYPE_TO_TITLE = {
-        'router': 'Router',
-        'container': 'Container',
-        'websocket-testee': 'WebSocket Testee'
-    }
+    # eg: crossbar.worker.container.ContainerWorkerSession
+    l = options.klass.split('.')
+    worker_module, worker_klass = '.'.join(l[:-1]), l[-1]
 
-    from twisted.python.reflect import qual
-    log.info('{worker_title} worker "{worker_id}" process {pid} starting on {python}-{reactor} ..',
-             worker_title=WORKER_TYPE_TO_TITLE[options.type],
-             worker_id=options.worker,
-             pid=os.getpid(),
-             python=platform.python_implementation(),
-             reactor=qual(reactor.__class__).split('.')[-1])
+    # now load the worker module and class
+    _mod = importlib.import_module(worker_module)
+    klass = getattr(_mod, worker_klass)
+
+    log.info(
+        'Started {worker_title} worker "{worker_id}" on node "{node_id}" [{klass} / {python}-{reactor}]',
+        worker_title=klass.WORKER_TITLE,
+        klass=options.klass,
+        node_id=options.node,
+        worker_id=options.worker,
+        pid=os.getpid(),
+        python=platform.python_implementation(),
+        reactor=qual(reactor.__class__).split('.')[-1],
+    )
 
     # set process title if requested to
     #
@@ -158,12 +178,7 @@ def run():
         if options.title:
             setproctitle.setproctitle(options.title)
         else:
-            WORKER_TYPE_TO_PROCESS_TITLE = {
-                'router': 'crossbar-worker [router]',
-                'container': 'crossbar-worker [container]',
-                'websocket-testee': 'crossbar-worker [websocket-testee]'
-            }
-            setproctitle.setproctitle(WORKER_TYPE_TO_PROCESS_TITLE[options.type].strip())
+            setproctitle.setproctitle('crossbar-worker [{}]'.format(options.klass))
 
     # node directory
     #
@@ -171,15 +186,19 @@ def run():
     os.chdir(options.cbdir)
     # log.msg("Starting from node directory {}".format(options.cbdir))
 
-    from crossbar.worker.router import RouterWorkerSession
-    from crossbar.worker.container import ContainerWorkerSession
-    from crossbar.worker.testee import WebSocketTesteeWorkerSession
-
-    WORKER_TYPE_TO_CLASS = {
-        'router': RouterWorkerSession,
-        'container': ContainerWorkerSession,
-        'websocket-testee': WebSocketTesteeWorkerSession
-    }
+    # set process title if requested to
+    #
+    try:
+        import setproctitle
+    except ImportError:
+        log.debug("Could not set worker process title (setproctitle not installed)")
+    else:
+        if options.title:
+            setproctitle.setproctitle(options.title)
+        else:
+            setproctitle.setproctitle(
+                'crossbar-worker [{}]'.format(options.klass)
+            )
 
     from twisted.internet.error import ConnectionDone
     from autobahn.twisted.websocket import WampWebSocketServerProtocol
@@ -234,7 +253,7 @@ def run():
 
         session_config = ComponentConfig(realm=options.realm, extra=options)
         session_factory = ApplicationSessionFactory(session_config)
-        session_factory.session = WORKER_TYPE_TO_CLASS[options.type]
+        session_factory.session = klass
 
         # create a WAMP-over-WebSocket transport server factory
         #

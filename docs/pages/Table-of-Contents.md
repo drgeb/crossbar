@@ -5,36 +5,19 @@ toc: [Documentation, Table of Contents]
 
 ## Getting Started
 
-* [Quick Start](Quick Start)
 * [Getting Started](Getting Started)
-   * [Getting started with JavaScript in the Browser](Getting started with Browser)
-   * [Getting started with JavaScript in NodeJS](Getting started with NodeJS)
-   * [Getting started with CSharp](Getting started with CSharp)
-   * [Getting started with Cplusplus](Getting started with Cplusplus)
-   * [Getting started with Erlang](Getting started with Erlang)
-   * [Getting started with Java](Getting started with Java)
-   * [Getting started with PHP](Getting started with PHP)
-   * [Getting started with Python](Getting started with Python)
 
 ## Administrators
 
-* [Quick Reference](Quick Reference)
+* [Basic Concepts](Basic Concepts)
 * [Installation](Installation)
-   * Binary Packages
-      * [Installation on Ubuntu and Debian](Installation on Ubuntu and Debian)
-      * [Installation on CentOS and RedHat](Installation on CentOS and RedHat)
-      * [Installation on FreeBSD](Installation on FreeBSD)
    * Docker Images
       * [Using Docker](Using Docker)
    * Other Platforms
       * [Installation on (generic) Linux](Installation on Linux)
       * [Installation on Mac OS X](Installation on Mac OS X)
       * [Installation on Windows](Installation on Windows)
-   * Devices
-      * [Installation on RaspberryPi](Installation on RaspberryPi)
-      * [Installation on Ubuntu Snappy](Installation on Ubuntu Snappy)
    * Setup on IaaS and PaaS Providers
-      * [Setup on Microsoft Azure](Setup-on-Microsoft-Azure)
       * [Setup on Amazon EC2](Setup-on-Amazon-EC2)
       * [Setup on Heroku](Setup-on-Heroku)
       * [Setup on OpenShift](Setup-on-OpenShift)
@@ -107,6 +90,12 @@ toc: [Documentation, Table of Contents]
 
 * [Application Scenarios](Application Scenarios)
 * [Programming Guide](Programming Guide)
+   * General
+   [URI Format](URI Format)
+      - [Logging in Crossbar.io](Logging in Crossbario)
+      - [Error Handling](Error Handling)
+      - [Session Meta Events and Procedures](Session Metaevents and Procedures)
+      - [Development with External Devices](Development-with-External-Devices)
    * [WAMP Features](WAMP Features)
       - Session
          + [Session Meta Events and Procedures](Session Metaevents and Procedures)

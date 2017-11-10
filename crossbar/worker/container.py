@@ -34,14 +34,14 @@ from functools import partial
 from datetime import datetime
 
 from twisted import internet
-from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks
+from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.internet.defer import returnValue
 from twisted.python.failure import Failure
 
 from autobahn.util import utcstr
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import ComponentConfig, PublishOptions
-from autobahn.wamp.types import RegisterOptions
+from autobahn import wamp
 
 from crossbar.common import checkconfig
 from crossbar.worker import _appsession_loader
@@ -104,12 +104,19 @@ class ContainerWorkerSession(NativeWorkerSession):
     a WAMP transport) and attached to a given realm on the application router.
     """
     WORKER_TYPE = u'container'
+    WORKER_TITLE = u'Container'
+
+    SHUTDOWN_MANUAL = u'shutdown-manual'
+    SHUTDOWN_ON_LAST_COMPONENT_STOPPED = u'shutdown-on-last-component-stopped'
 
     def __init__(self, config=None, reactor=None):
         NativeWorkerSession.__init__(self, config, reactor)
 
         # map: component ID -> ContainerComponent
         self.components = {}
+
+        # when shall we exit?
+        self._exit_mode = (config.extra.shutdown or self.SHUTDOWN_MANUAL)
 
         # "global" shared between all components
         self.components_shared = {
@@ -122,35 +129,15 @@ class ContainerWorkerSession(NativeWorkerSession):
         Called when worker process has joined the node's management realm.
         """
         self.log.info('Container worker "{worker_id}" session {session_id} initializing ..', worker_id=self._worker_id, session_id=details.session)
-
         yield NativeWorkerSession.onJoin(self, details, publish_ready=False)
-
-        # the procedures registered
-        procs = [
-            u'stop',
-            u'start_component',
-            u'stop_component',
-            u'restart_component',
-            u'get_component',
-            u'list_components',
-        ]
-
-        dl = []
-        for proc in procs:
-            uri = u'{}.{}'.format(self._uri_prefix, proc)
-            self.log.debug('Registering management API procedure <{proc}>', proc=uri)
-            dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
-
-        regs = yield DeferredList(dl)
-
-        self.log.debug('Ok, registered {cnt} management API procedures', cnt=len(regs))
 
         self.log.info('Container worker "{worker_id}" session ready', worker_id=self._worker_id)
 
         # NativeWorkerSession.publish_ready()
         yield self.publish_ready()
 
-    def stop(self, details=None):
+    @wamp.register(None)
+    def shutdown(self, details=None):
         """
         Stops the whole container gracefully by stopping all components
         currently running, and then stopping the container worker.
@@ -164,12 +151,13 @@ class ContainerWorkerSession(NativeWorkerSession):
         """
         stopped_component_ids = []
         dl = []
-        for component in self.components:
-            dl.append(self.stop_component(component.id))
+        for component in self.components.values():
+            dl.append(self.stop_component(component.id, details=details))
             stopped_component_ids.append(component.id)
         self.disconnect()
         return stopped_component_ids
 
+    @wamp.register(None)
     def start_component(self, component_id, config, reload_modules=False, details=None):
         """
         Starts a component in this container worker.
@@ -324,10 +312,13 @@ class ContainerWorkerSession(NativeWorkerSession):
                 component._stopped.callback(component.marshal())
 
                 if not self.components:
-                    self.log.info("Container is hosting no more components: stopping container ...")
-                    self.stop()
+                    if self._exit_mode == self.SHUTDOWN_ON_LAST_COMPONENT_STOPPED:
+                        self.log.info("Container is hosting no more components: stopping container in exit mode <{exit_mode}> ...", exit_mode=self._exit_mode)
+                        self.shutdown()
+                    else:
+                        self.log.info("Container is hosting no more components: continue running in exit mode <{exit_mode}>", exit_mode=self._exit_mode)
                 else:
-                    self.log.info("Container is still hosting {component_count} components", component_count=len(self.components))
+                    self.log.info("Container is still hosting {component_count} components: continue running in exit mode <{exit_mode}>", exit_mode=self._exit_mode, component_count=len(self.components))
 
                 return r
 
@@ -386,6 +377,7 @@ class ContainerWorkerSession(NativeWorkerSession):
             self.publish(topic, event)
         return event
 
+    @wamp.register(None)
     @inlineCallbacks
     def restart_component(self, component_id, reload_modules=False, details=None):
         """
@@ -431,6 +423,7 @@ class ContainerWorkerSession(NativeWorkerSession):
 
         returnValue(restarted)
 
+    @wamp.register(None)
     @inlineCallbacks
     def stop_component(self, component_id, details=None):
         """
@@ -465,20 +458,25 @@ class ContainerWorkerSession(NativeWorkerSession):
             u'component_id': component_id,
             u'uptime': (datetime.utcnow() - component.started).total_seconds(),
             u'caller': {
-                u'session': details.caller,
-                u'authid': details.caller_authid,
-                u'authrole': details.caller_authrole,
+                u'session': details.caller if details else None,
+                u'authid': details.caller_authid if details else None,
+                u'authrole': details.caller_authrole if details else None,
             }
         }
 
-        del self.components[component_id]
+        # the component.proto above normally already cleaned it up
+        if component_id in self.components:
+            del self.components[component_id]
 
-        self.publish(u'{}.on_component_stopped'.format(self._uri_prefix),
-                     stopped,
-                     options=PublishOptions(exclude=details.caller))
+        # FIXME: this is getting autobahn.wamp.exception.TransportLost
+        if False:
+            self.publish(u'{}.on_component_stopped'.format(self._uri_prefix),
+                         stopped,
+                         options=PublishOptions(exclude=details.caller))
 
         returnValue(stopped)
 
+    @wamp.register(None)
     def get_component(self, component_id, details=None):
         """
         Get a component currently running within this container.
@@ -499,7 +497,8 @@ class ContainerWorkerSession(NativeWorkerSession):
 
         return self.components[component_id].marshal()
 
-    def list_components(self, ids_only=True, details=None):
+    @wamp.register(None)
+    def get_components(self, details=None):
         """
         Get components currently running within this container.
 
@@ -514,11 +513,4 @@ class ContainerWorkerSession(NativeWorkerSession):
         :rtype: list
         """
         self.log.debug('{klass}.list_components({details})', klass=self.__class__.__name__, details=details)
-
-        if ids_only:
-            return sorted(self.components.keys())
-        else:
-            res = []
-            for component_id in sorted(self.components.keys()):
-                res.append(self.components[component_id].marshal())
-            return res
+        return sorted(self.components.keys())

@@ -5,34 +5,24 @@ toc: [Documentation]
 
 Welcome to the Crossbar.io Reference Documentation.
 
-[Table of contents](Table of Contents).
+* [Table of Contents](Table of Contents).
 
-> This documentation is an open-source community effort sponsored by [Crossbar.io GmbH](http://crossbario.com). Should you find errors or if you have suggestions, please file a doc issue [here](https://github.com/crossbario/crossbar/issues/new).
+## Introduction
 
-### Getting Started
-
-* **[Quick Start](Quick Start)**
 * [Getting Started](Getting Started)
 
-### Administrators
+## Administrators
 
-* [Quick Reference](Quick Reference)
+* [Basic Concepts](Basic Concepts)
 * [Installation](Installation)
 * [Administration](Administration)
 
-### Programmers
+## Programmers
 
 * [Programming Guide](Programming Guide)
-* [Application Templates](Application Templates)
 * [Examples](Examples)
 
-### DevOps Center
-
-* **[Getting Started with CDC](CDC Getting Started)**
-* [CDC Authentication](CDC Authentication)
-* [CDC API Reference](CDC API Reference)
-
-### More
+## More
 
 * [Compatibility Policy](Compatibility-Policy)
 * [Crossbar.io Code License](Crossbar-License)
@@ -40,3 +30,5 @@ Welcome to the Crossbar.io Reference Documentation.
 * [Contributing to the Project](https://github.com/crossbario/crossbar/blob/master/CONTRIBUTING.md)
 * [Contributing FAQ](Contributing FAQ)
 * [FAQ](FAQ)
+
+> This documentation is an open-source community effort sponsored by [Crossbar.io GmbH](http://crossbario.com). Should you find errors or if you have suggestions, please file a doc issue [here](https://github.com/crossbario/crossbar/issues/new).

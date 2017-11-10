@@ -1,6 +1,47 @@
 title: ChangeLog
 toc: [Documentation, Programming Guide, ChangeLog]
 
+
+Crossbar.io master (unreleased)
+===============================
+
+* ADD ME
+
+
+Crossbar.io 17.11.1 (2017-11-03)
+===============================
+
+* fix: "crossbar check" command was broken
+* new: refactor tracing code to enable trace_level==action
+* new: forward node_id into worker
+
+
+Crossbar.io 17.10.1 (2017-10-31)
+===============================
+
+* fix: edge-case of traced + batched messaging
+* fix: stop retaining old authids and empty sets in router (memory leak!).
+* new: 'crossbar keygen' command
+
+
+Crossbar.io 17.9.2 (2017-09-24)
+===============================
+
+* fix: checking of onion-endpoint public ports + tests
+* new: message tracing API
+* new: router-realm options ("enable_meta_api", "bridge_meta_api")
+* new: configurable container shutdown behavior ("shutdown-manual", "shutdown-on-last-worker-exit")
+
+
+Crossbar 17.4.1 (2017-04-15)
+=============================
+
+* new: MQTT core protocol support in beta
+* new: MQTT payload mapping modes (passthrough, native, dynamic)
+* new: use WAMP payload transparency for MQTT
+* new: Web resource type "nodeinfo"
+
+
 Crossbar 17.3.1 (2017-03-31)
 =============================
 

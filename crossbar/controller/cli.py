@@ -28,7 +28,7 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 import argparse
 import click
@@ -59,7 +59,8 @@ from autobahn.websocket.protocol import WebSocketProtocol
 from autobahn.websocket.utf8validator import Utf8Validator
 from autobahn.websocket.xormasker import XorMaskerNull
 
-from crossbar.controller.node import _read_release_pubkey, _read_node_pubkey
+from crossbar.controller.node import _read_release_pubkey, _read_node_pubkey, \
+    default_native_workers
 from crossbar.controller.template import Templates
 from crossbar.common.checkconfig import check_config_file, \
     color_json, convert_config_file, upgrade_config_file, InvalidConfigException
@@ -126,9 +127,9 @@ node_default_personality = u'community'
 if u'fabric' in node_classes:
     node_default_personality = u'fabric'
 
-# however, if available, choose "fabricservice" as default
-if u'fabricservice' in node_classes:
-    node_default_personality = u'fabricservice'
+# however, if available, choose "fabriccenter" as default
+if u'fabriccenter' in node_classes:
+    node_default_personality = u'fabriccenter'
 
 
 def check_pid_exists(pid):
@@ -164,7 +165,7 @@ def _is_crossbar_process(cmdline):
     """
     if len(cmdline) > 1 and 'crossbar' in cmdline[1]:
         return True
-    if cmdline[0] == 'crossbar-controller':
+    if len(cmdline) > 0 and cmdline[0] == 'crossbar-controller':
         return True
     return False
 
@@ -338,12 +339,12 @@ def run_command_version(options, reactor=None, **kwargs):
     except ImportError:
         crossbarfabric_ver = '-'
 
-    # crossbarfabricservice (only Crossbar.io FABRIC CENTER)
+    # crossbarfabriccenter (only Crossbar.io FABRIC CENTER)
     try:
-        import crossbarfabricservice  # noqa
-        crossbarfabricservice_ver = '%s' % pkg_resources.require('crossbarfabricservice')[0].version
+        import crossbarfabriccenter  # noqa
+        crossbarfabriccenter_ver = '%s' % pkg_resources.require('crossbarfabriccenter')[0].version
     except ImportError:
-        crossbarfabricservice_ver = '-'
+        crossbarfabriccenter_ver = '-'
 
     # txaio-etcd (only Crossbar.io FABRIC CENTER)
     try:
@@ -382,10 +383,10 @@ def run_command_version(options, reactor=None, **kwargs):
     log.info("   LMDB             : {ver}", ver=decorate(lmdb_ver))
     log.info("   Python           : {ver}/{impl}", ver=decorate(py_ver), impl=decorate(py_ver_detail))
     log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(py_ver_string))
-    if options.personality in (u'fabric', u'fabricservice'):
+    if options.personality in (u'fabric', u'fabriccenter'):
         log.info(" Crossbar.io Fabric : {ver}", ver=decorate(crossbarfabric_ver))
-    if options.personality == u'fabricservice':
-        log.info(" Crossbar.io FC     : {ver}", ver=decorate(crossbarfabricservice_ver))
+    if options.personality == u'fabriccenter':
+        log.info(" Crossbar.io FC     : {ver}", ver=decorate(crossbarfabriccenter_ver))
         log.debug("   txaioetcd        : {ver}", ver=decorate(txaioetcd_ver))
     log.info(" OS                 : {ver}", ver=decorate(platform.platform()))
     log.info(" Machine            : {ver}", ver=decorate(platform.machine()))
@@ -684,6 +685,7 @@ def run_command_start(options, reactor=None):
     try:
         node.load(options.config)
     except InvalidConfigException as e:
+        log.failure()
         log.error("Invalid node configuration")
         log.error("{e!s}", e=e)
         sys.exit(1)
@@ -750,7 +752,7 @@ def run_command_check(options, **kwargs):
 
     try:
         print("Checking local node configuration file: {}".format(configfile))
-        config = check_config_file(configfile)
+        config = check_config_file(configfile, default_native_workers())
     except Exception as e:
         print("Error: {}".format(e))
         sys.exit(1)
@@ -803,6 +805,22 @@ def run_command_upgrade(options, **kwargs):
         sys.exit(1)
     else:
         sys.exit(0)
+
+
+def run_command_keygen(options, **kwargs):
+    """
+    Subcommand "crossbar keygen".
+    """
+
+    try:
+        from autobahn.wamp.cryptobox import KeyRing
+    except ImportError:
+        print("You should install 'autobahn[encryption]'")
+        sys.exit(1)
+
+    priv, pub = KeyRing().generate_key()
+    print('  private: {}'.format(priv))
+    print('   public: {}'.format(pub))
 
 
 def run(prog=None, args=None, reactor=None):
@@ -1038,6 +1056,16 @@ def run(prog=None, args=None, reactor=None):
                               default=None,
                               help="Crossbar.io configuration file (overrides default CBDIR/config.json)")
 
+    # "keygen" command
+    #
+    help_text = 'Generate public/private keypairs for use with autobahn.wamp.cryptobox.KeyRing'
+    parser_keygen = subparsers.add_parser(
+        'keygen',
+        help=help_text,
+        description=help_text,
+    )
+    parser_keygen.set_defaults(func=run_command_keygen)
+
     # parse cmd line args
     #
     options = parser.parse_args(args)
@@ -1061,6 +1089,7 @@ def run(prog=None, args=None, reactor=None):
                 options.cbdir = '.crossbar'
             else:
                 options.cbdir = '.'
+
         options.cbdir = os.path.abspath(options.cbdir)
 
         # convenience: if --cbdir points to a config file, take
@@ -1068,12 +1097,22 @@ def run(prog=None, args=None, reactor=None):
         if os.path.isfile(options.cbdir):
             options.cbdir = os.path.dirname(options.cbdir)
 
+        # convenience: auto-create directory if not existing
+        if not os.path.isdir(options.cbdir):
+            try:
+                os.mkdir(options.cbdir)
+            except Exception as e:
+                print("Could not create node directory: {}".format(e))
+                sys.exit(1)
+            else:
+                print("Auto-created node directory {}".format(options.cbdir))
+
     # Crossbar.io node configuration file
     #
     if hasattr(options, 'config'):
         # if not explicit config filename is given, try to auto-detect .
         if not options.config:
-            for f in ['config.json', 'config.yaml']:
+            for f in ['config.yaml', 'config.json']:
                 fn = os.path.join(options.cbdir, f)
                 if os.path.isfile(fn) and os.access(fn, os.R_OK):
                     options.config = f
@@ -1090,6 +1129,8 @@ def run(prog=None, args=None, reactor=None):
                 except Exception as e:
                     print("Could not create log directory: {e}".format(e))
                     sys.exit(1)
+                else:
+                    print("Auto-created log directory {}".format(options.logdir))
 
     if not reactor:
         # try and get the log verboseness we want -- not all commands have a

@@ -382,6 +382,7 @@ class RouterSession(BaseSession):
                 self._authrole = authrole
                 self._authmethod = authmethod
                 self._authprovider = authprovider
+                self._authextra = authextra
 
                 roles = self._router.attach(self)
 
@@ -417,9 +418,7 @@ class RouterSession(BaseSession):
                     msg = None
                     if isinstance(res, types.Accept):
                         custom = {
-                            # FIXME:
-                            # u'x_cb_node_id': self._router_factory._node_id
-                            u'x_cb_node_id': None
+                            u'x_cb_node_id': self._router_factory._node_id
                         }
                         welcome(res.realm, res.authid, res.authrole, res.authmethod, res.authprovider, res.authextra, custom)
 
@@ -445,9 +444,7 @@ class RouterSession(BaseSession):
                     msg = None
                     if isinstance(res, types.Accept):
                         custom = {
-                            # FIXME:
-                            # u'x_cb_node_id': self._router_factory._node_id
-                            u'x_cb_node_id': None
+                            u'x_cb_node_id': self._router_factory._node_id
                         }
                         welcome(res.realm, res.authid, res.authrole, res.authmethod, res.authprovider, res.authextra, custom)
 
@@ -552,8 +549,11 @@ class RouterSession(BaseSession):
 
             try:
                 self._router.detach(self)
-            except Exception:
-                pass
+            except Exception as e:
+                self.log.error(
+                    "Failed to detach session '{}': {}".format(self._session_id, e)
+                )
+                self.log.debug("{tb}".format(tb=Failure().getTraceback()))
 
             self._session_id = None
 
@@ -608,10 +608,15 @@ class RouterSession(BaseSession):
         try:
             # default authentication method is "WAMP-Anonymous" if client doesn't specify otherwise
             authmethods = details.authmethods or [u'anonymous']
+            authextra = details.authextra
+
+            self.log.debug('onHello: {authextra}', authextra=authextra)
 
             # if the client had a reassigned realm during authentication, restore it from the cookie
             if hasattr(self._transport, '_authrealm') and self._transport._authrealm:
+                assert u'cookie' in authmethods
                 realm = self._transport._authrealm
+                authextra = self._transport._authextra
 
             # perform authentication
             if self._transport._authid is not None and (self._transport._authmethod == u'trusted' or self._transport._authprovider in authmethods):
@@ -627,7 +632,7 @@ class RouterSession(BaseSession):
                                         authrole=self._transport._authrole,
                                         authmethod=self._transport._authmethod,
                                         authprovider=self._transport._authprovider,
-                                        authextra=None)
+                                        authextra=authextra)
                 else:
                     return types.Deny(ApplicationError.NO_SUCH_ROLE, message="session was previously authenticated (via transport), but role '{}' no longer exists on realm '{}'".format(self._transport._authrole, realm))
 
@@ -640,6 +645,8 @@ class RouterSession(BaseSession):
                     # .. but don't if the client isn't ready/willing to go on "anonymous"
                     if u'anonymous' not in authmethods:
                         return types.Deny(ApplicationError.NO_AUTH_METHOD, message=u'cannot authenticate using any of the offered authmethods {}'.format(authmethods))
+
+                    authmethod = u'anonymous'
 
                     if not realm:
                         return types.Deny(ApplicationError.NO_SUCH_REALM, message=u'no realm requested')
@@ -656,12 +663,9 @@ class RouterSession(BaseSession):
                         # if no cookie tracking, generate a random value for authid
                         authid = util.generate_serial_number()
 
-                    return types.Accept(realm=realm,
-                                        authid=authid,
-                                        authrole=u'anonymous',
-                                        authmethod=u'anonymous',
-                                        authprovider=u'static',
-                                        authextra=None)
+                    PendingAuthKlass = AUTHMETHOD_MAP[authmethod]
+                    self._pending_auth = PendingAuthKlass(self, {u'type': u'static', u'authrole': u'anonymous', u'authid': authid})
+                    return self._pending_auth.hello(realm, details)
 
                 else:
                     # iterate over authentication methods announced by client ..
@@ -752,6 +756,7 @@ class RouterSession(BaseSession):
             u'authid': details.authid,
             u'authrole': details.authrole,
             u'authmethod': details.authmethod,
+            u'authextra': details.authextra,
             u'authprovider': details.authprovider,
             u'transport': self._transport._transport_info
         }

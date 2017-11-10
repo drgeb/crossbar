@@ -239,6 +239,19 @@ class CheckEndpointTests(TestCase):
         )
 
 
+class CheckWebsocketTests(TestCase):
+
+    def test_tiny_timeout_auto_ping(self):
+        options = dict(auto_ping_timeout=12)
+
+        with self.assertRaises(checkconfig.InvalidConfigException) as ctx:
+            checkconfig.check_websocket_options(options)
+
+        self.assertTrue(
+            "'auto_ping_timeout' is in milliseconds" in str(ctx.exception)
+        )
+
+
 class CheckRealmTests(TestCase):
     """
     Tests for check_router_realm, check_router_realm_role
@@ -400,4 +413,44 @@ class CheckRealmTests(TestCase):
         self.assertRaises(
             checkconfig.InvalidConfigException,
             checkconfig.check_router_realm, config_realm,
+        )
+
+
+class CheckOnion(TestCase):
+
+    def test_unknown_attr(self):
+        with self.assertRaises(checkconfig.InvalidConfigException) as ctx:
+            checkconfig.check_listening_endpoint_onion({
+                u"type": u"onion",
+                u"foo": 42,
+            })
+        self.assertIn(
+            "unknown attribute",
+            str(ctx.exception)
+        )
+
+    def test_success(self):
+        checkconfig.check_listening_endpoint_onion({
+            u"type": u"onion",
+            u"private_key_file": u"something",
+            u"port": 1234,
+            u"tor_control_endpoint": {
+                u"type": u"unix",
+                u"path": u"/dev/null",
+            }
+        })
+
+    def test_port_wrong_type(self):
+        with self.assertRaises(checkconfig.InvalidConfigException) as ctx:
+            checkconfig.check_listening_endpoint_onion({
+                u"type": u"onion",
+                u"port": u"1234",
+            })
+        self.assertIn(
+            "invalid type",
+            str(ctx.exception)
+        )
+        self.assertIn(
+            "encountered for attribute 'port'",
+            str(ctx.exception)
         )

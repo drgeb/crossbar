@@ -867,6 +867,31 @@ def check_listening_endpoint_twisted(endpoint):
     # should/can we ask Twisted to parse it easily?
 
 
+def check_listening_endpoint_onion(endpoint):
+    """
+    :param endpoint: The onion endpoint
+    :type endpoint: dict
+    """
+    for k in endpoint:
+        if k not in ['type', 'port', 'private_key_file', 'tor_control_endpoint']:
+            raise InvalidConfigException(
+                "encountered unknown attribute '{}' in onion endpoint".format(k)
+            )
+
+    check_dict_args(
+        {
+            u"type": (True, [six.text_type]),
+            u"port": (True, six.integer_types),
+            u"private_key_file": (True, [six.text_type]),
+            u"tor_control_endpoint": (True, [Mapping])
+        },
+        endpoint,
+        "onion endpoint config",
+    )
+    check_endpoint_port(endpoint[u"port"])
+    check_connecting_endpoint(endpoint[u"tor_control_endpoint"])
+
+
 def check_connecting_endpoint_tcp(endpoint):
     """
     Check a TCP connecting endpoint configuration.
@@ -953,6 +978,33 @@ def check_connecting_endpoint_twisted(endpoint):
         check_endpoint_timeout(endpoint['timeout'])
 
 
+def check_connecting_endpoint_tor(endpoint):
+    """
+    :param endpoint: The Tor connecting endpoint to check.
+    :type endpoint: dict
+    """
+    for k in endpoint:
+        if k not in ['type', 'host', 'port', 'tor_socks_port', 'tls']:
+            raise InvalidConfigException(
+                "encountered unknown attribute '{}' in connecting endpoint".format(k)
+            )
+
+    if 'host' not in endpoint:
+        raise InvalidConfigException("missing mandatory attribute 'host' in connecting endpoint item\n\n{}".format(pformat(endpoint)))
+
+    if 'port' not in endpoint:
+        raise InvalidConfigException("missing mandatory attribute 'port' in connecting endpoint item\n\n{}".format(pformat(endpoint)))
+
+    if 'tor_socks_port' not in endpoint:
+        raise InvalidConfigException("missing mandatory attribute 'tor_socks_port' in connecting endpoint item\n\n{}".format(pformat(endpoint)))
+
+    check_endpoint_port(endpoint['port'])
+    check_endpoint_port(endpoint['tor_socks_port'])
+
+    if 'tls' in endpoint:
+        check_connecting_endpoint_tls(endpoint['tls'])
+
+
 def check_listening_endpoint(endpoint):
     """
     Check a listening endpoint configuration.
@@ -970,7 +1022,7 @@ def check_listening_endpoint(endpoint):
         raise InvalidConfigException("missing mandatory attribute 'type' in endpoint item\n\n{}".format(pformat(endpoint)))
 
     etype = endpoint['type']
-    if etype not in ['tcp', 'unix', 'twisted']:
+    if etype not in ['tcp', 'unix', 'twisted', 'onion']:
         raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in endpoint item\n\n{}".format(etype, pformat(endpoint)))
 
     if etype == 'tcp':
@@ -979,6 +1031,8 @@ def check_listening_endpoint(endpoint):
         check_listening_endpoint_unix(endpoint)
     elif etype == 'twisted':
         check_listening_endpoint_twisted(endpoint)
+    elif etype == 'onion':
+        check_listening_endpoint_onion(endpoint)
     else:
         raise InvalidConfigException('logic error')
 
@@ -1000,7 +1054,7 @@ def check_connecting_endpoint(endpoint):
         raise InvalidConfigException("missing mandatory attribute 'type' in endpoint item\n\n{}".format(pformat(endpoint)))
 
     etype = endpoint['type']
-    if etype not in ['tcp', 'unix', 'twisted']:
+    if etype not in ['tcp', 'unix', 'twisted', 'tor']:
         raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in endpoint item\n\n{}".format(etype, pformat(endpoint)))
 
     if etype == 'tcp':
@@ -1009,8 +1063,28 @@ def check_connecting_endpoint(endpoint):
         check_connecting_endpoint_unix(endpoint)
     elif etype == 'twisted':
         check_connecting_endpoint_twisted(endpoint)
+    elif etype == 'tor':
+        check_connecting_endpoint_tor(endpoint)
     else:
         raise InvalidConfigException('logic error')
+
+
+def _check_milliseconds(name, value):
+    try:
+        value = int(value)
+    except ValueError:
+        raise InvalidConfigException(
+            "'{}' should be an integer (in milliseconds)".format(name)
+        )
+    if value < 0:
+        raise InvalidConfigException(
+            "'{}' must be positive integer".format(name)
+        )
+    if value != 0 and value < 1000:
+        raise InvalidConfigException(
+            "'{}' is in milliseconds; {} is too small".format(name, value)
+        )
+    return True
 
 
 def check_websocket_options(options):
@@ -1058,7 +1132,15 @@ def check_websocket_options(options):
         ]:
             raise InvalidConfigException("encountered unknown attribute '{}' in WebSocket options".format(k))
 
-    # FIXME: do the actual checking of above!
+    millisecond_intervals = [
+        'open_handshake_timeout',
+        'close_handshake_timeout',
+        'auto_ping_interval',
+        'auto_ping_timeout',
+    ]
+    for k in millisecond_intervals:
+        if k in options:
+            _check_milliseconds(k, options[k])
 
     if 'compression' in options:
         check_websocket_compression(options['compression'])
@@ -1401,9 +1483,21 @@ def check_web_path_service_caller(config):
     check_dict_args({
         'type': (True, [six.text_type]),
         'realm': (True, [six.text_type]),
-        'role': (True, [six.text_type]),
+        'role': (False, [six.text_type]),
+        'auth': (False, [Mapping]),
         'options': (False, [Mapping]),
     }, config, "Web transport 'caller' path service")
+
+    if 'auth' in config:
+        check_transport_auth(config['auth'])
+
+    # TODO: check auth and role are not defined at the same time
+
+    if 'auth' not in config and 'role' not in config:
+        raise Exception('Must specify auth or role.')
+
+    if 'auth' in config and 'role' in config:
+        raise Exception('Cannot specify both auth and role.')
 
     if 'options' in config:
         check_dict_args({
@@ -1594,6 +1688,19 @@ def check_listening_transport_web(transport, with_endpoint=True):
         if not isinstance(options, Mapping):
             raise InvalidConfigException("'options' in Web transport must be dictionary ({} encountered)".format(type(options)))
 
+        valid_options = [
+            'access_log',
+            'display_tracebacks',
+            'hsts',
+            'hsts_max_age',
+            'client_timeout',
+        ]
+        for k in options.keys():
+            if k not in valid_options:
+                raise InvalidConfigException(
+                    "'{}' unknown in Web transport 'options'".format(k)
+                )
+
         if 'access_log' in options:
             access_log = options['access_log']
             if not isinstance(access_log, bool):
@@ -1615,6 +1722,23 @@ def check_listening_transport_web(transport, with_endpoint=True):
                 raise InvalidConfigException("'hsts_max_age' attribute in 'options' in Web transport must be integer ({} encountered)".format(type(hsts_max_age)))
             if hsts_max_age < 0:
                 raise InvalidConfigException("'hsts_max_age' attribute in 'options' in Web transport must be non-negative ({} encountered)".format(hsts_max_age))
+
+        if 'client_timeout' in options:
+            timeout = options['client_timeout']
+            if timeout is None:
+                pass
+            elif type(timeout) not in six.integer_types:
+                raise InvalidConfigException(
+                    "'client_time' attribute in 'options' in Web transport must be integer ({} encountered)".format(
+                        type(timeout)
+                    )
+                )
+            elif timeout < 1 or timeout > 60 * 60 * 24:
+                raise InvalidConfigException(
+                    "unreasonable value for 'client_timeout' in Web transport 'options': {}".format(
+                        timeout
+                    )
+                )
 
 
 _WEB_PATH_PAT_STR = "^([a-z0-9A-Z_\-]+|/)$"
@@ -2304,7 +2428,7 @@ def check_router_realm(realm):
             "Realm 'options' must be a dict"
         )
     for arg, val in options.items():
-        if arg not in ['event_dispatching_chunk_size', 'uri_check']:
+        if arg not in ['event_dispatching_chunk_size', 'uri_check', 'enable_meta_api', 'bridge_meta_api']:
             raise InvalidConfigException(
                 "Unknown realm option '{}'".format(arg)
             )
@@ -2317,6 +2441,14 @@ def check_router_realm(realm):
             raise InvalidConfigException(
                 "Realm option 'event_dispatching_chunk_size' must be a positive int"
             )
+
+    if 'enable_meta_api' in options:
+        if type(options['enable_meta_api']) != bool:
+            raise InvalidConfigException("Invalid type {} for enable_meta_api in realm options".format(type(options['enable_meta_api'])))
+
+    if 'bridge_meta_api' in options:
+        if type(options['bridge_meta_api']) != bool:
+            raise InvalidConfigException("Invalid type {} for bridge_meta_api in realm options".format(type(options['bridge_meta_api'])))
 
 
 def check_router_realm_role(role):
@@ -2362,10 +2494,6 @@ def check_router_realm_role(role):
 
             if role_uri.endswith('*'):
                 role_uri = role_uri[:-1]
-            if not _URI_PAT_STRICT_LAST_EMPTY.match(role_uri):
-                raise InvalidConfigException(
-                    "invalid role URI '{}' in role permissions".format(role['uri']),
-                )
 
             check_dict_args({
                 'uri': (True, [six.text_type]),
@@ -2378,6 +2506,12 @@ def check_router_realm_role(role):
             if 'match' in role:
                 if role['match'] not in [u'exact', u'prefix', u'wildcard']:
                     raise InvalidConfigException("invalid value '{}' for 'match' attribute in role permissions".format(role['match']))
+
+            if not _URI_PAT_STRICT_LAST_EMPTY.match(role_uri):
+                if role.get('match', None) != 'wildcard':
+                    raise InvalidConfigException(
+                        "invalid role URI '{}' in role permissions".format(role['uri']),
+                    )
 
             if 'allow' in role:
                 check_dict_args({
@@ -2537,7 +2671,7 @@ def check_container(container):
         check_manhole(container['manhole'])
 
     if 'options' in container:
-        check_native_worker_options(container['options'])
+        check_container_options(container['options'])
 
     # connections
     #
@@ -2555,7 +2689,15 @@ def check_router_options(options):
 
 
 def check_container_options(options):
-    check_native_worker_options(options)
+    check_native_worker_options(options, extra_options=['shutdown'])
+    valid_modes = [u'shutdown-manual', u'shutdown-on-last-component-stopped']
+    if 'shutdown' in options:
+        if options['shutdown'] not in valid_modes:
+            raise InvalidConfigException(
+                "'shutdown' must be one of: {}".format(
+                    ', '.join(valid_modes)
+                )
+            )
 
 
 def check_websocket_testee_options(options):
@@ -2646,7 +2788,7 @@ def check_process_env(env):
                 raise InvalidConfigException("invalid type for environment variable value '{}' in 'options.env.vars' - must be a string ({} encountered)".format(v, type(v)))
 
 
-def check_native_worker_options(options):
+def check_native_worker_options(options, extra_options=[]):
     """
     Check native worker options.
 
@@ -2662,7 +2804,7 @@ def check_native_worker_options(options):
 
     for k in options:
         if k not in ['title', 'reactor', 'python', 'pythonpath', 'cpu_affinity',
-                     'env', 'expose_controller', 'expose_shared']:
+                     'env', 'expose_controller', 'expose_shared'] + extra_options:
             raise InvalidConfigException(
                 "encountered unknown attribute '{}' in 'options' in worker"
                 " configuration".format(k)
@@ -2801,7 +2943,7 @@ def check_websocket_testee(worker):
             raise InvalidConfigException("encountered unknown attribute '{}' in WebSocket testee configuration".format(k))
 
     if 'options' in worker:
-        check_native_worker_options(worker['options'])
+        check_websocket_testee_options(worker['options'])
 
     if 'transport' not in worker:
         raise InvalidConfigException("missing mandatory attribute 'transport' in WebSocket testee configuration")
@@ -2809,7 +2951,7 @@ def check_websocket_testee(worker):
     check_listening_transport_websocket(worker['transport'])
 
 
-def check_worker(worker):
+def check_worker(worker, native_workers):
     """
     Check a node worker configuration item.
 
@@ -2827,23 +2969,17 @@ def check_worker(worker):
 
     ptype = worker['type']
 
-    if ptype not in ['router', 'container', 'guest', 'websocket-testee']:
-        raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in worker item\n\n{}".format(ptype, pformat(worker)))
+    if ptype not in list(native_workers.keys()) + ['guest']:
+        raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in worker item (valid items are: {})\n\n{}".format(ptype, ', '.join(native_workers.keys()), pformat(worker)))
 
-    if ptype == 'router':
-        check_router(worker)
-
-    elif ptype == 'container':
-        check_container(worker)
-
-    elif ptype == 'guest':
+    if ptype == 'guest':
         check_guest(worker)
-
-    elif ptype == 'websocket-testee':
-        check_websocket_testee(worker)
-
     else:
-        raise InvalidConfigException('logic error')
+        try:
+            check_fn = native_workers[ptype]['checkconfig_item']
+        except KeyError:
+            raise InvalidConfigException('missing worker check function "checkconfig_item"')
+        check_fn(worker)
 
 
 def check_controller_options(options):
@@ -2866,7 +3002,7 @@ def check_controller_options(options):
             raise InvalidConfigException("'title' in 'options' in controller configuration must be a string ({} encountered)".format(type(title)))
 
     if 'shutdown' in options:
-        if not isinstance(options['shutdown'], Sequence):
+        if not isinstance(options['shutdown'], Sequence) or isinstance(options['shutdown'], six.text_type):
             raise InvalidConfigException("invalid type {} for 'shutdown' in node controller options (must be a list)".format(type(options['shutdown'])))
         for shutdown_mode in options['shutdown']:
             if shutdown_mode not in NODE_SHUTDOWN_MODES:
@@ -2927,7 +3063,7 @@ def check_controller(controller):
     check_connections(connections)
 
 
-def check_config(config):
+def check_config(config, native_workers):
     """
     Check a Crossbar.io top-level configuration.
 
@@ -2936,6 +3072,9 @@ def check_config(config):
 
     :param config: The configuration to check.
     :type config: dict
+
+    :param native_workers: Mapping of valid native workers
+    :type native_workers: dict
     """
     if not isinstance(config, Mapping):
         raise InvalidConfigException("top-level configuration item must be a dictionary ({} encountered)".format(type(config)))
@@ -2965,10 +3104,10 @@ def check_config(config):
 
     for i, worker in enumerate(workers):
         log.debug("Checking worker item {item} ..", item=i)
-        check_worker(worker)
+        check_worker(worker, native_workers)
 
 
-def check_config_file(configfile):
+def check_config_file(configfile, native_workers):
     """
     Check a Crossbar.io local configuration file.
 
@@ -2995,7 +3134,7 @@ def check_config_file(configfile):
         else:
             raise Exception('logic error')
 
-    check_config(config)
+    check_config(config, native_workers)
 
     return config
 

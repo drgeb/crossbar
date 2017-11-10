@@ -25,17 +25,7 @@ clean:
 	# Learn to love the shell! http://unix.stackexchange.com/a/115869/52500
 	find . \( -name "*__pycache__" -type d \) -prune -exec rm -rf {} +
 
-news: towncrier.ini crossbar/newsfragments/*.*
-	# this produces a NEWS.md file, 'git rm's crossbar/newsfragments/* and 'git add's NEWS.md
-	# ...which we then use to update docs/pages/ChangeLog.md
-	towncrier
-	cat docs/templates/changelog_preamble.md > docs/pages/ChangeLog.md
-	cat NEWS.md >> docs/pages/ChangeLog.md
-	git add docs/pages/ChangeLog.md
-	echo You should now 'git commit -m "update NEWS and ChangeLog"' the result, if happy.
-
 docs:
-	# towncrier --draft > docs/pages/ChangeLog.md
 	python docs/test_server.py
 
 # call this in a fresh virtualenv to update our frozen requirements.txt!
@@ -60,6 +50,7 @@ install:
 install_dev:
 	pip install -r requirements-dev.txt
 	pip install -e .
+	python -c "import crossbar; print('\ncrossbar-{} installed'.format(crossbar.__version__))"
 
 # upload to our internal deployment system
 upload: clean
@@ -83,7 +74,7 @@ full_test: clean flake8
 
 # This will run pep8, pyflakes and can skip lines that end with # noqa
 flake8:
-	flake8 --ignore=E402,F405,E501,E731,N801,N802,N803,N805,N806 crossbar
+	flake8 --ignore=E402,F405,E501,E722,E741,E731,N801,N802,N803,N805,N806 crossbar
 
 flake8_stats:
 	flake8 --statistics --max-line-length=119 -qq crossbar
