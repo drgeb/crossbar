@@ -296,6 +296,16 @@ class Dealer(object):
                                 registration.id,
                                 options=options,
                             )
+
+                            registration_details = {
+                                'id': registration.id,
+                                'created': registration.created,
+                                'uri': registration.uri,
+                                'match': registration.match,
+                            }
+
+                            service_session.publish('wamp.registration.on_delete_detailed', session._session_id,
+                                                    registration.id, registration_details)
                     # we postpone actual sending of meta events until we return to this client session
                     self._reactor.callLater(0, _publish, registration)
 
@@ -694,6 +704,19 @@ class Dealer(object):
                         registration.id,
                         options=options
                     )
+
+                    registration_details = {
+                        'id': registration.id,
+                        'created': registration.created,
+                        'uri': registration.uri,
+                        'match': registration.match,
+                    }
+
+                    service_session.publish(
+                        'wamp.registration.on_delete_detailed',
+                        session._session_id,
+                        registration.id,
+                        registration_details)
 
             # we postpone actual sending of meta events until we return to this client session
             self._reactor.callLater(0, _publish)

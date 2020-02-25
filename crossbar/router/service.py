@@ -27,7 +27,7 @@
 #  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
 #
 #####################################################################################
-
+from crossbar.router.session import RouterSession
 from twisted.internet.defer import inlineCallbacks
 from twisted.python.failure import Failure
 
@@ -191,6 +191,33 @@ class RouterServiceAgent(ApplicationSession):
         # needs to be expanded!
         if not isinstance(failure.value, ApplicationError):
             super(RouterServiceAgent, self).onUserError(failure, msg)
+
+    @wamp.register(u'wamp.session.summary')
+    def session_summary(self, filter_authroles=None, details=None):
+        """
+        Get summary of sessions currently joined on the router grouped by auth_roles .
+
+        :param filter_authroles: If provided, only return sessions counts for authroles from this list.
+        :type filter_authroles: None or list
+
+        :returns: List of WAMP session IDs (order undefined).
+        :rtype: list
+        """
+        assert (filter_authroles is None or type(filter_authroles) == list)
+        session_counts = {}
+        for session in self._router._session_id_to_session.values():
+            if not is_restricted_session(session):
+                if filter_authroles is None or auth_role in filter_authroles:
+
+                    if isinstance(session, RouterSession):
+                        auth_role = session._session_details.authrole
+
+                        if auth_role in session_counts:
+                            session_counts[auth_role] += 1
+                        else:
+                            session_counts[auth_role] = 1
+
+        return session_counts
 
     @wamp.register('wamp.session.list')
     def session_list(self, filter_authroles=None, details=None):
