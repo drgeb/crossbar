@@ -262,4 +262,3 @@ To watch the log file:
 ::
 
     tail -f /home/ubuntu/cbdemo/.crossbar/log/node.log
-

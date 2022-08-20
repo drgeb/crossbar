@@ -118,4 +118,3 @@ This is called caller/publisher disclosure, and can be configured on a URI patte
 Crossbar.io supports Publisher exclusion, which is the default, but can be disabled on a per-publication basis.
 
 Further, Crossbar.io supports subscriber black-/whitelisting based on WAMP session ID as well as WAMP `authid` and `authrole`.
-

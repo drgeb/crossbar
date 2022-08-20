@@ -32,10 +32,7 @@ import re
 
 from twisted.internet.protocol import Protocol, Factory
 
-__all__ = (
-    'FlashPolicyProtocol',
-    'FlashPolicyFactory'
-)
+__all__ = ("FlashPolicyProtocol", "FlashPolicyFactory")
 
 
 class FlashPolicyProtocol(Protocol):
@@ -74,7 +71,10 @@ class FlashPolicyProtocol(Protocol):
         def dropConnection():
             self.transport.abortConnection()
             self.dropConnection = None
-        self.dropConnection = self.factory.reactor.callLater(FlashPolicyProtocol.REQUESTTIMEOUT, dropConnection)
+
+        self.dropConnection = self.factory.reactor.callLater(
+            FlashPolicyProtocol.REQUESTTIMEOUT, dropConnection
+        )
 
     def connectionLost(self, reason):
         if self.dropConnection:
@@ -86,7 +86,10 @@ class FlashPolicyProtocol(Protocol):
         if FlashPolicyProtocol.REQUESTPAT.match(self.received):
             # got valid request: send policy file
             ##
-            self.transport.write(FlashPolicyProtocol.POLICYFILE % (self._allowedDomain, self._allowedPorts))
+            self.transport.write(
+                FlashPolicyProtocol.POLICYFILE
+                % (self._allowedDomain, self._allowedPorts)
+            )
             self.transport.loseConnection()
         elif len(self.received) > FlashPolicyProtocol.REQUESTMAXLEN:
             # possible DoS attack
@@ -99,7 +102,6 @@ class FlashPolicyProtocol(Protocol):
 
 
 class FlashPolicyFactory(Factory):
-
     def __init__(self, allowedDomain=None, allowedPorts=None, reactor=None):
         """
 

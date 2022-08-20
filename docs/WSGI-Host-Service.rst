@@ -39,7 +39,7 @@ in your :doc:`Web transport <Web-Transport-and-Services>`: :
 Example
 -------
 
-See `here <https://github.com/crossbario/crossbar-examples/tree/master/wsgi>`_ 
+See `here <https://github.com/crossbario/crossbar-examples/tree/master/wsgi>`_
 for a complete example.
 
 Here is a minimal example using Flask. The overall files involved are:
@@ -114,4 +114,3 @@ your node configuration:
           }
        ]
     }
-

@@ -28,6 +28,3 @@ Crossbar.io Node
 
 Configuration
 -------------
-
-
-

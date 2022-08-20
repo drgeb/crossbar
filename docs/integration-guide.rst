@@ -2,5 +2,5 @@
 
 .. _integration-guide:
 
-Integration Guide 
+Integration Guide
 =================

@@ -3,7 +3,7 @@ toc: [Documentation, Programming Guide, Try out without Installation]
 
 # Try out without installation
 
-You can try out what WAMP & Crossbar.io can do right now, in your browser, without the need for any installation. 
+You can try out what WAMP & Crossbar.io can do right now, in your browser, without the need for any installation.
 
 Download the following two HTML pages (right click & save)
 
@@ -16,7 +16,7 @@ They connect to an online demo instance of Crossbar.io. Each registers a procedu
 
 Open the browser console to see the output. Open the files in your editor to see how little code is needed.
 
-**Note**: If more than a single person tries this at the same time, then 
+**Note**: If more than a single person tries this at the same time, then
 
 * the procedure calls will be received by the last component to register the procedure
 * every component will receive PubSub events from all other components
@@ -24,7 +24,7 @@ Open the browser console to see the output. Open the files in your editor to see
 ## Using the Crossbar.io demo instance for your own testing
 
 The Crossbar.io demo instance is there for you to use for your experiments.
-This is currently a micro instance on EC2, and also serves the [Crossbar.io live demos](https://demo.crossbar.io/). 
+This is currently a micro instance on EC2, and also serves the [Crossbar.io live demos](https://demo.crossbar.io/).
 
 The connection data for this is:
 

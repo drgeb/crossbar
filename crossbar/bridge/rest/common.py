@@ -53,10 +53,11 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import hmac as hazmat_hmac
 
 from autobahn.websocket.utf8validator import Utf8Validator
+
 _validator = Utf8Validator()
 
 
-_ALLOWED_CONTENT_TYPES = set([b'application/json'])
+_ALLOWED_CONTENT_TYPES = set([b"application/json"])
 
 
 class _InvalidUnicode(BaseException):
@@ -83,7 +84,9 @@ def _constant_compare(a, b):
     Compare the two byte-strings 'a' and 'b' using a constant-time
     algorithm. The byte-strings should be the same length.
     """
-    return _hmac_sha256(_nonce, a.encode('ascii')) == _hmac_sha256(_nonce, b.encode('ascii'))
+    return _hmac_sha256(_nonce, a.encode("ascii")) == _hmac_sha256(
+        _nonce, b.encode("ascii")
+    )
 
 
 def _confirm_github_signature(request, secret_token, raw_body):
@@ -93,17 +96,19 @@ def _confirm_github_signature(request, secret_token, raw_body):
     # stuff just "won't work" unless we gives bytes objects to the
     # underlying crypto primitives
     if not isinstance(secret_token, bytes):
-        secret_token = secret_token.encode('ascii')
+        secret_token = secret_token.encode("ascii")
     assert isinstance(raw_body, bytes)
     # must have the header to continue
-    if not request.requestHeaders.getRawHeaders('X-Hub-Signature'):
+    if not request.requestHeaders.getRawHeaders("X-Hub-Signature"):
         return False
-    purported_signature = str(request.requestHeaders.getRawHeaders('X-Hub-Signature')[0]).lower()
+    purported_signature = str(
+        request.requestHeaders.getRawHeaders("X-Hub-Signature")[0]
+    ).lower()
     # NOTE: never use SHA1 for new code ... but GitHub signatures are
     # SHA1, so we have to here :(
     h = hazmat_hmac.HMAC(secret_token, hashes.SHA1(), default_backend())  # nosec
     h.update(raw_body)
-    our_signature = "sha1={}".format(binascii.b2a_hex(h.finalize()).decode('ascii'))
+    our_signature = "sha1={}".format(binascii.b2a_hex(h.finalize()).decode("ascii"))
     return _constant_compare(our_signature, purported_signature)
 
 
@@ -111,6 +116,7 @@ class _CommonResource(Resource):
     """
     Shared components between PublisherResource and CallerResource.
     """
+
     isLeaf = True
     decode_as_json = True
 
@@ -129,21 +135,21 @@ class _CommonResource(Resource):
         self.log = make_logger()
 
         self._key = None
-        if 'key' in options:
-            self._key = options['key'].encode('utf8')
+        if "key" in options:
+            self._key = options["key"].encode("utf8")
 
         self._secret = None
-        if 'secret' in options:
-            self._secret = options['secret'].encode('utf8')
+        if "secret" in options:
+            self._secret = options["secret"].encode("utf8")
 
-        self._post_body_limit = int(options.get('post_body_limit', 0))
-        self._timestamp_delta_limit = int(options.get('timestamp_delta_limit', 300))
+        self._post_body_limit = int(options.get("post_body_limit", 0))
+        self._timestamp_delta_limit = int(options.get("timestamp_delta_limit", 300))
 
         self._require_ip = None
-        if 'require_ip' in options:
-            self._require_ip = [ip_network(net) for net in options['require_ip']]
+        if "require_ip" in options:
+            self._require_ip = [ip_network(net) for net in options["require_ip"]]
 
-        self._require_tls = options.get('require_tls', None)
+        self._require_tls = options.get("require_tls", None)
 
     def _deny_request(self, request, code, **kwargs):
         """
@@ -154,9 +160,10 @@ class _CommonResource(Resource):
 
         self.log.debug(code=code, **kwargs)
 
-        error_str = log_categories[kwargs['log_category']].format(**kwargs)
-        body = dump_json({"error": error_str,
-                          "args": [], "kwargs": {}}, True).encode('utf8')
+        error_str = log_categories[kwargs["log_category"]].format(**kwargs)
+        body = dump_json({"error": error_str, "args": [], "kwargs": {}}, True).encode(
+            "utf8"
+        )
         request.setResponseCode(code)
         return body
 
@@ -167,30 +174,30 @@ class _CommonResource(Resource):
         res = {}
         err = kwargs["failure"]
         if isinstance(err.value, ApplicationError):
-            res['error'] = err.value.error
+            res["error"] = err.value.error
             if err.value.args:
-                res['args'] = err.value.args
+                res["args"] = err.value.args
             else:
-                res['args'] = []
+                res["args"] = []
             if err.value.kwargs:
-                res['kwargs'] = err.value.kwargs
+                res["kwargs"] = err.value.kwargs
             else:
-                res['kwargs'] = {}
+                res["kwargs"] = {}
 
             # This is a user-level error, not a CB error, so return 200
             code = 200
         else:
             # This is a "CB" error, so return 500 and a generic error
-            res['error'] = 'wamp.error.runtime_error'
-            res['args'] = ["Sorry, Crossbar.io has encountered a problem."]
-            res['kwargs'] = {}
+            res["error"] = "wamp.error.runtime_error"
+            res["args"] = ["Sorry, Crossbar.io has encountered a problem."]
+            res["kwargs"] = {}
 
             # CB-level error, return 500
             code = 500
 
             self.log.failure(None, failure=err, log_category="AR500")
 
-        body = json.dumps(res).encode('utf8')
+        body = json.dumps(res).encode("utf8")
 
         if "log_category" not in kwargs.keys():
             kwargs["log_category"] = "AR" + str(code)
@@ -216,18 +223,20 @@ class _CommonResource(Resource):
         """
         Set common HTTP response headers.
         """
-        origin = request.getHeader(b'origin')
-        if origin is None or origin == b'null':
-            origin = b'*'
+        origin = request.getHeader(b"origin")
+        if origin is None or origin == b"null":
+            origin = b"*"
 
-        request.setHeader(b'access-control-allow-origin', origin)
-        request.setHeader(b'access-control-allow-credentials', b'true')
-        request.setHeader(b'cache-control', b'no-store,no-cache,must-revalidate,max-age=0')
-        request.setHeader(b'content-type', b'application/json; charset=UTF-8')
+        request.setHeader(b"access-control-allow-origin", origin)
+        request.setHeader(b"access-control-allow-credentials", b"true")
+        request.setHeader(
+            b"cache-control", b"no-store,no-cache,must-revalidate,max-age=0"
+        )
+        request.setHeader(b"content-type", b"application/json; charset=UTF-8")
 
-        headers = request.getHeader(b'access-control-request-headers')
+        headers = request.getHeader(b"access-control-request-headers")
         if headers is not None:
-            request.setHeader(b'access-control-allow-headers', headers)
+            request.setHeader(b"access-control-allow-headers", headers)
 
     def render(self, request):
         """
@@ -238,19 +247,22 @@ class _CommonResource(Resource):
 
         try:
             if request.method not in (b"POST", b"PUT", b"OPTIONS"):
-                return self._deny_request(request, 405, method=request.method,
-                                          allowed="POST, PUT")
+                return self._deny_request(
+                    request, 405, method=request.method, allowed="POST, PUT"
+                )
             else:
 
                 if request.method == b"OPTIONS":
                     # http://greenbytes.de/tech/webdav/rfc2616.html#rfc.section.14.7
-                    request.setHeader(b'allow', b'POST,PUT,OPTIONS')
+                    request.setHeader(b"allow", b"POST,PUT,OPTIONS")
 
                     # https://www.w3.org/TR/cors/#access-control-allow-methods-response-header
-                    request.setHeader(b'access-control-allow-methods', b'POST,PUT,OPTIONS')
+                    request.setHeader(
+                        b"access-control-allow-methods", b"POST,PUT,OPTIONS"
+                    )
 
                     request.setResponseCode(200)
-                    return b''
+                    return b""
                 else:
                     return self._render_request(request)
         except Exception as e:
@@ -274,8 +286,7 @@ class _CommonResource(Resource):
 
         if len(content_type_header) > 0:
             content_type_elements = [
-                x.strip().lower()
-                for x in content_type_header[0].split(b";")
+                x.strip().lower() for x in content_type_header[0].split(b";")
             ]
         else:
             content_type_elements = []
@@ -284,13 +295,16 @@ class _CommonResource(Resource):
             # if the client sent a content type, it MUST be one of _ALLOWED_CONTENT_TYPES
             # (but we allow missing content type .. will catch later during JSON
             # parsing anyway)
-            if len(content_type_elements) > 0 and \
-               content_type_elements[0] not in _ALLOWED_CONTENT_TYPES:
+            if (
+                len(content_type_elements) > 0
+                and content_type_elements[0] not in _ALLOWED_CONTENT_TYPES
+            ):
                 return self._deny_request(
-                    request, 400,
+                    request,
+                    400,
                     accepted=list(_ALLOWED_CONTENT_TYPES),
                     given=content_type_elements[0],
-                    log_category="AR452"
+                    log_category="AR452",
                 )
 
         encoding_parts = {}
@@ -316,10 +330,8 @@ class _CommonResource(Resource):
 
         charset_encoding = encoding_parts.get("charset", "utf-8")
 
-        if charset_encoding not in ["utf-8", 'utf8']:
-            return self._deny_request(
-                request, 400,
-                log_category="AR450")
+        if charset_encoding not in ["utf-8", "utf8"]:
+            return self._deny_request(request, 400, log_category="AR450")
 
         # enforce "post_body_limit"
         #
@@ -329,9 +341,7 @@ class _CommonResource(Resource):
         if len(content_length_header) == 1:
             content_length = int(content_length_header[0])
         elif len(content_length_header) > 1:
-            return self._deny_request(
-                request, 400,
-                log_category="AR463")
+            return self._deny_request(request, 400, log_category="AR463")
         else:
             content_length = body_length
 
@@ -340,15 +350,17 @@ class _CommonResource(Resource):
             # Content-Length. This is so that clients can't lie and bypass
             # length restrictions by giving an incorrect header with a large
             # body.
-            return self._deny_request(request, 400, bodylen=body_length,
-                                      conlen=content_length,
-                                      log_category="AR465")
+            return self._deny_request(
+                request,
+                400,
+                bodylen=body_length,
+                conlen=content_length,
+                log_category="AR465",
+            )
 
         if self._post_body_limit and content_length > self._post_body_limit:
             return self._deny_request(
-                request, 413,
-                length=content_length,
-                accepted=self._post_body_limit
+                request, 413, length=content_length, accepted=self._post_body_limit
             )
 
         #
@@ -360,7 +372,8 @@ class _CommonResource(Resource):
         if github_secret:
             if not _confirm_github_signature(request, github_secret, body):
                 return self._deny_request(
-                    request, 400,
+                    request,
+                    400,
                     log_cagegory="AR467",
                 )
 
@@ -370,85 +383,99 @@ class _CommonResource(Resource):
 
         # key
         #
-        if 'key' in args:
+        if "key" in args:
             key_str = args["key"]
         else:
             if self._secret:
                 return self._deny_request(
-                    request, 400,
-                    reason="'key' field missing",
-                    log_category="AR461")
+                    request, 400, reason="'key' field missing", log_category="AR461"
+                )
 
         # timestamp
         #
-        if 'timestamp' in args:
+        if "timestamp" in args:
             timestamp_str = args["timestamp"]
             try:
-                ts = datetime.datetime.strptime(native_string(timestamp_str), "%Y-%m-%dT%H:%M:%S.%fZ")
+                ts = datetime.datetime.strptime(
+                    native_string(timestamp_str), "%Y-%m-%dT%H:%M:%S.%fZ"
+                )
                 delta = abs((ts - datetime.datetime.utcnow()).total_seconds())
                 if self._timestamp_delta_limit and delta > self._timestamp_delta_limit:
-                    return self._deny_request(
-                        request, 400,
-                        log_category="AR464")
+                    return self._deny_request(request, 400, log_category="AR464")
             except ValueError:
                 return self._deny_request(
-                    request, 400,
-                    reason="invalid timestamp '{0}' (must be UTC/ISO-8601, e.g. '2011-10-14T16:59:51.123Z')".format(native_string(timestamp_str)),
-                    log_category="AR462")
+                    request,
+                    400,
+                    reason="invalid timestamp '{0}' (must be UTC/ISO-8601, e.g. '2011-10-14T16:59:51.123Z')".format(
+                        native_string(timestamp_str)
+                    ),
+                    log_category="AR462",
+                )
         else:
             if self._secret:
                 return self._deny_request(
-                    request, 400, reason="signed request required, but mandatory 'timestamp' field missing",
-                    log_category="AR461")
+                    request,
+                    400,
+                    reason="signed request required, but mandatory 'timestamp' field missing",
+                    log_category="AR461",
+                )
 
         # seq
         #
-        if 'seq' in args:
+        if "seq" in args:
             seq_str = args["seq"]
             try:
                 # FIXME: check sequence
                 seq = int(seq_str)  # noqa
             except:
                 return self._deny_request(
-                    request, 400,
-                    reason="invalid sequence number '{0}' (must be an integer)".format(native_string(seq_str)),
-                    log_category="AR462")
+                    request,
+                    400,
+                    reason="invalid sequence number '{0}' (must be an integer)".format(
+                        native_string(seq_str)
+                    ),
+                    log_category="AR462",
+                )
         else:
             if self._secret:
                 return self._deny_request(
-                    request, 400,
-                    reason="'seq' field missing",
-                    log_category="AR461")
+                    request, 400, reason="'seq' field missing", log_category="AR461"
+                )
 
         # nonce
         #
-        if 'nonce' in args:
+        if "nonce" in args:
             nonce_str = args["nonce"]
             try:
                 # FIXME: check nonce
                 nonce = int(nonce_str)  # noqa
             except:
                 return self._deny_request(
-                    request, 400,
-                    reason="invalid nonce '{0}' (must be an integer)".format(native_string(nonce_str)),
-                    log_category="AR462")
+                    request,
+                    400,
+                    reason="invalid nonce '{0}' (must be an integer)".format(
+                        native_string(nonce_str)
+                    ),
+                    log_category="AR462",
+                )
         else:
             if self._secret:
                 return self._deny_request(
-                    request, 400,
-                    reason="'nonce' field missing",
-                    log_category="AR461")
+                    request, 400, reason="'nonce' field missing", log_category="AR461"
+                )
 
         # signature
         #
-        if 'signature' in args:
+        if "signature" in args:
             signature_str = args["signature"]
         else:
             if self._secret:
                 return self._deny_request(
-                    request, 400,
+                    request,
+                    400,
                     reason="'signature' field missing",
-                    log_category="AR461")
+                    log_category="AR461",
+                )
 
         # do more checks if signed requests are required
         #
@@ -456,9 +483,13 @@ class _CommonResource(Resource):
 
             if key_str != self._key:
                 return self._deny_request(
-                    request, 401,
-                    reason="unknown key '{0}' in signed request".format(native_string(key_str)),
-                    log_category="AR460")
+                    request,
+                    401,
+                    reason="unknown key '{0}' in signed request".format(
+                        native_string(key_str)
+                    ),
+                    log_category="AR460",
+                )
 
             # Compute signature: HMAC[SHA256]_{secret} (key | timestamp | seq | nonce | body) => signature
             hm = hmac.new(self._secret, None, hashlib.sha256)
@@ -470,11 +501,9 @@ class _CommonResource(Resource):
             signature_recomputed = base64.urlsafe_b64encode(hm.digest())
 
             if signature_str != signature_recomputed:
-                return self._deny_request(request, 401,
-                                          log_category="AR459")
+                return self._deny_request(request, 401, log_category="AR459")
             else:
-                self.log.debug("REST request signature valid.",
-                               log_category="AR203")
+                self.log.debug("REST request signature valid.", log_category="AR203")
 
         # user_agent = headers.get("user-agent", "unknown")
         client_ip = request.getClientIP()
@@ -496,8 +525,9 @@ class _CommonResource(Resource):
         #
         if self._require_tls:
             if not is_secure:
-                return self._deny_request(request, 400,
-                                          reason="request denied because not using TLS")
+                return self._deny_request(
+                    request, 400, reason="request denied because not using TLS"
+                )
 
         # FIXME: authorize request
         authorized = True
@@ -511,24 +541,18 @@ class _CommonResource(Resource):
         # validate() returns a 4-tuple, of which item 0 is whether it
         # is valid
         if not validation_result[0]:
-            return self._deny_request(
-                request, 400,
-                log_category="AR451")
+            return self._deny_request(request, 400, log_category="AR451")
 
-        event = body.decode('utf8')
+        event = body.decode("utf8")
 
         if self.decode_as_json:
             try:
                 event = json.loads(event)
             except Exception as e:
-                return self._deny_request(
-                    request, 400,
-                    exc=e, log_category="AR453")
+                return self._deny_request(request, 400, exc=e, log_category="AR453")
 
             if not isinstance(event, dict):
-                return self._deny_request(
-                    request, 400,
-                    log_category="AR454")
+                return self._deny_request(request, 400, log_category="AR454")
 
         d = self._process(request, event)
 

@@ -8,16 +8,15 @@ from autobahn import util
 
 
 class TestCookieStore(unittest.TestCase):
-
     def write_cookies_to_file(self, cookies, file):
         for cookie in cookies:
-            file.write((json.dumps(cookie) + '\n').encode('utf-8'))
+            file.write((json.dumps(cookie) + "\n").encode("utf-8"))
         file.flush()
 
     def read_cookies_from_file(self, file):
         file.seek(0)
-        cookies = list(map(lambda x: json.loads(x.decode('utf-8')), file.readlines()))
-        cookies.sort(key=lambda x: x['id'])
+        cookies = list(map(lambda x: json.loads(x.decode("utf-8")), file.readlines()))
+        cookies.sort(key=lambda x: x["id"])
         return cookies
 
     def test_purge_on_startup(self):
@@ -54,7 +53,7 @@ class TestCookieStore(unittest.TestCase):
                 "authrealm": "example.second.authrealm",
                 "authmethod": "example.second.authmethod",
                 "authextra": {},
-            }
+            },
         ]
 
         expected = [
@@ -77,18 +76,14 @@ class TestCookieStore(unittest.TestCase):
                 "authrealm": "example.other.authrealm",
                 "authmethod": "example.other.authmethod",
                 "authextra": {"a": "b"},
-            }
+            },
         ]
 
         with tempfile.NamedTemporaryFile() as fp:
             self.write_cookies_to_file(original, fp)
 
             config = {
-                'store': {
-                    'type': 'file',
-                    'filename': fp.name,
-                    'purge_on_startup': True
-                }
+                "store": {"type": "file", "filename": fp.name, "purge_on_startup": True}
             }
 
             CookieStoreFileBacked(fp.name, config)
@@ -128,18 +123,13 @@ class TestCookieStore(unittest.TestCase):
                 "authrealm": "example.other.authrealm",
                 "authmethod": "example.other.authmethod",
                 "authextra": {},
-            }
+            },
         ]
 
         with tempfile.NamedTemporaryFile() as fp:
             self.write_cookies_to_file(original, fp)
 
-            config = {
-                'store': {
-                    'type': 'file',
-                    'filename': fp.name
-                }
-            }
+            config = {"store": {"type": "file", "filename": fp.name}}
 
             CookieStoreFileBacked(fp.name, config)
 
@@ -183,7 +173,7 @@ class TestCookieStore(unittest.TestCase):
                 "authrealm": "example.second.authrealm",
                 "authmethod": "example.second.authmethod",
                 "authextra": {},
-            }
+            },
         ]
 
         expected = [
@@ -203,11 +193,7 @@ class TestCookieStore(unittest.TestCase):
             self.write_cookies_to_file(original, fp)
 
             config = {
-                'store': {
-                    'type': 'file',
-                    'filename': fp.name,
-                    'purge_on_startup': True
-                }
+                "store": {"type": "file", "filename": fp.name, "purge_on_startup": True}
             }
 
             CookieStoreFileBacked(fp.name, config)

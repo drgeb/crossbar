@@ -4,7 +4,7 @@
 Flash Policy Transport
 ======================
 
-Quick Links: :doc:`Transport Endpoints <Transport-Endpoints>` 
+Quick Links: :doc:`Transport Endpoints <Transport-Endpoints>`
 
 Old Web browsers like IE8 and IE9 do no support WebSocket natively.
 *One* option to work around is using

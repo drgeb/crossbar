@@ -166,7 +166,7 @@ against a list of user configured, known good fingerprints:
         },
         "hashes": [
             "5ef1326e6f0f54e4552b5b5288d4dd2c96ad2e4164cd9e49886fe083fa5d8854"
-        ]        
+        ]
     }
 
 Above will

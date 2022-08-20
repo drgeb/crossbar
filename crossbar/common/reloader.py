@@ -39,7 +39,7 @@ except NameError:
     # Python 3
     from imp import reload
 
-__all__ = ('TrackingModuleReloader',)
+__all__ = ("TrackingModuleReloader",)
 
 
 def get_module_path_and_mtime(m):
@@ -50,9 +50,13 @@ def get_module_path_and_mtime(m):
     :type m: obj
     """
     res = (None, None)
-    if m and getattr(m, '__file__', None) and (m.__file__.endswith('.py') or m.__file__.endswith('.pyc')):
+    if (
+        m
+        and getattr(m, "__file__", None)
+        and (m.__file__.endswith(".py") or m.__file__.endswith(".pyc"))
+    ):
         f = m.__file__
-        if f.endswith('.pyc'):
+        if f.endswith(".pyc"):
             f = f[:-1]
         try:
             mtime = os.stat(f)[8]
@@ -129,7 +133,11 @@ class TrackingModuleReloader:
                     else:
                         self._module_mtimes[mod_name] = (f, new_mtime)
                         reload_modules.append(mod_name)
-                        self.log.debug("Change of module {mod_name} detected (file {f}).", mod_name=mod_name, f=f)
+                        self.log.debug(
+                            "Change of module {mod_name} detected (file {f}).",
+                            mod_name=mod_name,
+                            f=f,
+                        )
                 else:
                     self._module_mtimes[mod_name] = get_module_path_and_mtime(m)
                     reload_modules.append(mod_name)
@@ -138,7 +146,10 @@ class TrackingModuleReloader:
             reload_modules = maybe_dirty_modules
 
         if len(reload_modules):
-            self.log.debug("Reloading {modules} possibly changed modules", modules=len(reload_modules))
+            self.log.debug(
+                "Reloading {modules} possibly changed modules",
+                modules=len(reload_modules),
+            )
             for module in reload_modules:
                 self.log.debug("Reloading module {module}", module=module)
 

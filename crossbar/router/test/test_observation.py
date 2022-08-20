@@ -32,8 +32,12 @@ import unittest
 
 from autobahn.wamp.message import Subscribe
 
-from crossbar.router.observation import ExactUriObservation, \
-    PrefixUriObservation, WildcardUriObservation, UriObservationMap
+from crossbar.router.observation import (
+    ExactUriObservation,
+    PrefixUriObservation,
+    WildcardUriObservation,
+    UriObservationMap,
+)
 
 
 class FakeObserver:
@@ -41,13 +45,12 @@ class FakeObserver:
 
 
 class TestObservation(unittest.TestCase):
-
     def test_create_exact(self):
         """
         Create an exact-matching observation.
         """
         obs1 = ExactUriObservation("com.example.uri1")
-        self.assertTrue(isinstance(obs1.id, (int, )))
+        self.assertTrue(isinstance(obs1.id, (int,)))
         self.assertEqual(obs1.uri, "com.example.uri1")
         self.assertEqual(obs1.match, "exact")
         self.assertEqual(obs1.observers, set())
@@ -57,7 +60,7 @@ class TestObservation(unittest.TestCase):
         Create a prefix-matching observation.
         """
         obs1 = PrefixUriObservation("com.example.uri1")
-        self.assertTrue(isinstance(obs1.id, (int, )))
+        self.assertTrue(isinstance(obs1.id, (int,)))
         self.assertEqual(obs1.uri, "com.example.uri1")
         self.assertEqual(obs1.match, "prefix")
         self.assertEqual(obs1.observers, set())
@@ -67,14 +70,13 @@ class TestObservation(unittest.TestCase):
         Create a wildcard-matching observation.
         """
         obs1 = WildcardUriObservation("com.example..create")
-        self.assertTrue(isinstance(obs1.id, (int, )))
+        self.assertTrue(isinstance(obs1.id, (int,)))
         self.assertEqual(obs1.uri, "com.example..create")
         self.assertEqual(obs1.match, "wildcard")
         self.assertEqual(obs1.observers, set())
 
 
 class TestUriObservationMap(unittest.TestCase):
-
     def test_match_observations_empty(self):
         """
         An empty observer map returns an empty observer set for any URI.
@@ -93,7 +95,9 @@ class TestUriObservationMap(unittest.TestCase):
 
         uri1 = "com.example.uri1"
         obs1 = FakeObserver()
-        observation, was_already_observed, is_first_observer = obs_map.add_observer(obs1, uri1)
+        observation, was_already_observed, is_first_observer = obs_map.add_observer(
+            obs1, uri1
+        )
 
         self.assertIsInstance(observation, ExactUriObservation)
         self.assertFalse(was_already_observed)
@@ -223,26 +227,26 @@ class TestUriObservationMap(unittest.TestCase):
 
         obs1 = FakeObserver()
 
-        observation1, _, _ = obs_map.add_observer(obs1, "com.example", match=Subscribe.MATCH_PREFIX)
+        observation1, _, _ = obs_map.add_observer(
+            obs1, "com.example", match=Subscribe.MATCH_PREFIX
+        )
 
         # test matches
-        for uri in ["com.example.uri1.foobar.barbaz",
-                    "com.example.uri1.foobar",
-                    "com.example.uri1",
-                    "com.example.topi",
-                    "com.example.",
-                    "com.example2",
-                    "com.example"]:
+        for uri in [
+            "com.example.uri1.foobar.barbaz",
+            "com.example.uri1.foobar",
+            "com.example.uri1",
+            "com.example.topi",
+            "com.example.",
+            "com.example2",
+            "com.example",
+        ]:
             observations = obs_map.match_observations(uri)
             self.assertEqual(observations, [observation1])
             self.assertEqual(observations[0].observers, set([obs1]))
 
         # test non-matches
-        for uri in ["com.foobar.uri1",
-                    "com.exampl.uri1",
-                    "com.exampl",
-                    "com",
-                    ""]:
+        for uri in ["com.foobar.uri1", "com.exampl.uri1", "com.exampl", "com", ""]:
             observations = obs_map.match_observations(uri)
             self.assertEqual(observations, [])
 
@@ -256,24 +260,24 @@ class TestUriObservationMap(unittest.TestCase):
 
         obs1 = FakeObserver()
 
-        observation1, _, _ = obs_map.add_observer(obs1, "com.example..create", match=Subscribe.MATCH_WILDCARD)
+        observation1, _, _ = obs_map.add_observer(
+            obs1, "com.example..create", match=Subscribe.MATCH_WILDCARD
+        )
 
         # test matches
-        for uri in ["com.example.foobar.create",
-                    "com.example.1.create"
-                    ]:
+        for uri in ["com.example.foobar.create", "com.example.1.create"]:
             observations = obs_map.match_observations(uri)
             self.assertEqual(observations, [observation1])
             self.assertEqual(observations[0].observers, set([obs1]))
 
         # test non-matches
-        for uri in ["com.example.foobar.delete",
-                    "com.example.foobar.create2",
-                    "com.example.foobar.create.barbaz"
-                    "com.example.foobar",
-                    "com.example.create",
-                    "com.example"
-                    ]:
+        for uri in [
+            "com.example.foobar.delete",
+            "com.example.foobar.create2",
+            "com.example.foobar.create.barbaz" "com.example.foobar",
+            "com.example.create",
+            "com.example",
+        ]:
             observations = obs_map.match_observations(uri)
             self.assertEqual(observations, [])
 
@@ -285,28 +289,31 @@ class TestUriObservationMap(unittest.TestCase):
 
         obs1 = FakeObserver()
 
-        observation1, _, _ = obs_map.add_observer(obs1, "com...create", match=Subscribe.MATCH_WILDCARD)
+        observation1, _, _ = obs_map.add_observer(
+            obs1, "com...create", match=Subscribe.MATCH_WILDCARD
+        )
 
         # test matches
-        for uri in ["com.example.foobar.create",
-                    "com.example.1.create",
-                    "com.myapp.foobar.create",
-                    "com.myapp.1.create",
-                    ]:
+        for uri in [
+            "com.example.foobar.create",
+            "com.example.1.create",
+            "com.myapp.foobar.create",
+            "com.myapp.1.create",
+        ]:
             observations = obs_map.match_observations(uri)
             self.assertEqual(observations, [observation1])
             self.assertEqual(observations[0].observers, set([obs1]))
 
         # test non-matches
-        for uri in ["com.example.foobar.delete",
-                    "com.example.foobar.create2",
-                    "com.example.foobar.create.barbaz"
-                    "com.example.foobar",
-                    "org.example.foobar.create",
-                    "org.example.1.create",
-                    "org.myapp.foobar.create",
-                    "org.myapp.1.create",
-                    ]:
+        for uri in [
+            "com.example.foobar.delete",
+            "com.example.foobar.create2",
+            "com.example.foobar.create.barbaz" "com.example.foobar",
+            "org.example.foobar.create",
+            "org.example.1.create",
+            "org.myapp.foobar.create",
+            "org.myapp.1.create",
+        ]:
             observations = obs_map.match_observations(uri)
             self.assertEqual(observations, [])
 
@@ -319,9 +326,15 @@ class TestUriObservationMap(unittest.TestCase):
 
         obs1 = FakeObserver()
 
-        observation1, _, _ = obs_map.add_observer(obs1, "com.example.product.create", match=Subscribe.MATCH_EXACT)
-        observation2, _, _ = obs_map.add_observer(obs1, "com.example.product", match=Subscribe.MATCH_PREFIX)
-        observation3, _, _ = obs_map.add_observer(obs1, "com.example..create", match=Subscribe.MATCH_WILDCARD)
+        observation1, _, _ = obs_map.add_observer(
+            obs1, "com.example.product.create", match=Subscribe.MATCH_EXACT
+        )
+        observation2, _, _ = obs_map.add_observer(
+            obs1, "com.example.product", match=Subscribe.MATCH_PREFIX
+        )
+        observation3, _, _ = obs_map.add_observer(
+            obs1, "com.example..create", match=Subscribe.MATCH_WILDCARD
+        )
 
         observations = obs_map.match_observations("com.example.product.create")
         self.assertEqual(observations, [observation1, observation2, observation3])

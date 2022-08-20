@@ -51,7 +51,7 @@ fullfilled:
 The value mapped to in the ``paths`` dictionary is a Web Service. The
 complete list of available Web services can be found here:
 
--  :doc:`Web Services <Web-Services>` 
+-  :doc:`Web Services <Web-Services>`
 -  :doc:`HTTP Bridge <HTTP-Bridge>`
 
 The Web transport ``options`` can have the following attributes:
@@ -129,4 +129,3 @@ Here is an example that combines three services:
           }
        }
     }
-

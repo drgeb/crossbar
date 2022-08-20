@@ -42,8 +42,9 @@ def createHSTSRequestFactory(requestFactory, hstsMaxAge=31536000):
 
     def makeRequest(*a, **kw):
         request = requestFactory(*a, **kw)
-        request.responseHeaders.setRawHeaders("Strict-Transport-Security",
-                                              ["max-age={}".format(hstsMaxAge)])
+        request.responseHeaders.setRawHeaders(
+            "Strict-Transport-Security", ["max-age={}".format(hstsMaxAge)]
+        )
         return request
 
     return makeRequest
@@ -56,6 +57,7 @@ class _LessNoisyHTTPChannel(HTTPChannel):
     This is basically exactly what Twisted does, except without using
     "log.msg" so we can put it at debug log-level instead
     """
+
     log = make_logger()
 
     def timeoutConnection(self):
@@ -71,14 +73,15 @@ class _LessNoisyHTTPChannel(HTTPChannel):
 
 
 class Site(server.Site):
-
-    def __init__(self,
-                 resource,
-                 client_timeout=None,
-                 access_log=None,
-                 display_tracebacks=None,
-                 hsts=None,
-                 hsts_max_age=None):
+    def __init__(
+        self,
+        resource,
+        client_timeout=None,
+        access_log=None,
+        display_tracebacks=None,
+        hsts=None,
+        hsts_max_age=None,
+    ):
 
         server.Site.__init__(self, resource, timeout=client_timeout)
 
@@ -93,4 +96,6 @@ class Site(server.Site):
         # HSTS
         if hsts:
             hsts_max_age = hsts_max_age or 31536000
-            self.requestFactory = createHSTSRequestFactory(self.requestFactory, hsts_max_age)
+            self.requestFactory = createHSTSRequestFactory(
+                self.requestFactory, hsts_max_age
+            )

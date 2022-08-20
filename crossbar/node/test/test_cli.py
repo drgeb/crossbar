@@ -54,7 +54,7 @@ class CLITestBase(TestCase):
 
         self._subprocess_timeout = 15
 
-        if platform.python_implementation() == 'PyPy':
+        if platform.python_implementation() == "PyPy":
             self._subprocess_timeout = 30
 
         self.stderr = NativeStringIO()
@@ -75,20 +75,24 @@ class VersionTests(CLITestBase):
     """
     Tests for `crossbar version`.
     """
+
     def test_basic(self):
         """
         Just running `crossbar version` gets us the versions.
         """
         reactor = SelectReactor()
 
-        main.main("crossbar",
-                  ["version"],
-                  reactor=reactor)
+        main.main("crossbar", ["version"], reactor=reactor)
 
         self.assertIn("Crossbar.io", self.stdout.getvalue())
         self.assertIn(
-            ("Twisted          : \x1b[33m\x1b[1m" + twisted.version.short() + "-SelectReactor"),
-            self.stdout.getvalue())
+            (
+                "Twisted          : \x1b[33m\x1b[1m"
+                + twisted.version.short()
+                + "-SelectReactor"
+            ),
+            self.stdout.getvalue(),
+        )
 
     def test_debug(self):
         """
@@ -97,17 +101,20 @@ class VersionTests(CLITestBase):
         """
         reactor = SelectReactor()
 
-        main.main("crossbar",
-                  ["version", "--loglevel=debug"],
-                  reactor=reactor)
+        main.main("crossbar", ["version", "--loglevel=debug"], reactor=reactor)
 
         self.assertIn("Crossbar.io", self.stdout.getvalue())
         self.assertIn(
-            ("Twisted          : \x1b[33m\x1b[1m" + twisted.version.short() + "-SelectReactor"),
-            self.stdout.getvalue())
+            (
+                "Twisted          : \x1b[33m\x1b[1m"
+                + twisted.version.short()
+                + "-SelectReactor"
+            ),
+            self.stdout.getvalue(),
+        )
         self.assertIn(
-            ("[twisted.internet.selectreactor.SelectReactor]"),
-            self.stdout.getvalue())
+            ("[twisted.internet.selectreactor.SelectReactor]"), self.stdout.getvalue()
+        )
 
 
 class StartTests(CLITestBase):
@@ -134,10 +141,11 @@ class StartTests(CLITestBase):
         reactor = SelectReactor()
         reactor.run = lambda: False
 
-        main.main("crossbar",
-                  ["start", "--cbdir={}".format(self.cbdir),
-                   "--logformat=syslogd"],
-                  reactor=reactor)
+        main.main(
+            "crossbar",
+            ["start", "--cbdir={}".format(self.cbdir), "--logformat=syslogd"],
+            reactor=reactor,
+        )
 
         self.assertIn("Entering reactor event loop", self.stdout.getvalue())
 
@@ -151,19 +159,21 @@ class StartTests(CLITestBase):
         reactor = SelectReactor()
 
         with self.assertRaises(SystemExit) as e:
-            main.main("crossbar",
-                      ["start", "--cbdir={}".format(self.cbdir),
-                       "--logformat=syslogd"],
-                      reactor=reactor)
+            main.main(
+                "crossbar",
+                ["start", "--cbdir={}".format(self.cbdir), "--logformat=syslogd"],
+                reactor=reactor,
+            )
 
         # Exit with code 1
         self.assertEqual(e.exception.args[0], 1)
 
         # The proper warning should be emitted
-        self.assertIn("*** Configuration validation failed ***",
-                      self.stderr.getvalue())
-        self.assertIn(("configuration file does not seem to be proper JSON "),
-                      self.stderr.getvalue())
+        self.assertIn("*** Configuration validation failed ***", self.stderr.getvalue())
+        self.assertIn(
+            ("configuration file does not seem to be proper JSON "),
+            self.stderr.getvalue(),
+        )
 
     def test_fileLogging(self):
         """
@@ -175,9 +185,11 @@ class StartTests(CLITestBase):
         reactor = SelectReactor()
         reactor.run = lambda: None
 
-        main.main("crossbar",
-                  ["start", "--cbdir={}".format(self.cbdir), "--logtofile"],
-                  reactor=reactor)
+        main.main(
+            "crossbar",
+            ["start", "--cbdir={}".format(self.cbdir), "--logtofile"],
+            reactor=reactor,
+        )
 
         with open(os.path.join(self.cbdir, "node.log"), "r") as f:
             logFile = f.read()
@@ -197,23 +209,28 @@ class StartTests(CLITestBase):
         reactor = SelectReactor()
         reactor.run = lambda: None
 
-        main.main("crossbar",
-                  ["start", "--cbdir={}".format(self.cbdir),
-                   "--logformat=syslogd"],
-                  reactor=reactor)
+        main.main(
+            "crossbar",
+            ["start", "--cbdir={}".format(self.cbdir), "--logformat=syslogd"],
+            reactor=reactor,
+        )
 
         self.assertIn(
-            ("Stale Crossbar.io PID file (pointing to non-existing process "
-             "with PID {pid}) {fp} removed").format(
-                 fp=os.path.abspath(os.path.join(self.cbdir, "node.pid")),
-                 pid=9999999),
-            self.stdout.getvalue())
+            (
+                "Stale Crossbar.io PID file (pointing to non-existing process "
+                "with PID {pid}) {fp} removed"
+            ).format(
+                fp=os.path.abspath(os.path.join(self.cbdir, "node.pid")), pid=9999999
+            ),
+            self.stdout.getvalue(),
+        )
 
 
 class ConvertTests(CLITestBase):
     """
     Tests for `crossbar convert`.
     """
+
     def test_unknown_format(self):
         """
         Running `crossbar convert` with an unknown config file produces an
@@ -222,16 +239,16 @@ class ConvertTests(CLITestBase):
         cbdir = self.mktemp()
         os.makedirs(cbdir)
         config_file = os.path.join(cbdir, "config.blah")
-        open(config_file, 'wb').close()
+        open(config_file, "wb").close()
 
         with self.assertRaises(SystemExit) as e:
-            main.main("crossbar",
-                      ["convert", "--config={}".format(config_file)])
+            main.main("crossbar", ["convert", "--config={}".format(config_file)])
 
         self.assertEqual(e.exception.args[0], 1)
         self.assertIn(
             ("Error: configuration file needs to be '.json' or '.yaml'."),
-            self.stdout.getvalue())
+            self.stdout.getvalue(),
+        )
 
     def test_yaml_to_json(self):
         """
@@ -241,30 +258,32 @@ class ConvertTests(CLITestBase):
         cbdir = self.mktemp()
         os.makedirs(cbdir)
         config_file = os.path.join(cbdir, "config.yaml")
-        with open(config_file, 'w') as f:
-            f.write("""
+        with open(config_file, "w") as f:
+            f.write(
+                """
 foo:
     bar: spam
     baz:
         foo: cat
-        """)
+        """
+            )
 
-        main.main("crossbar",
-                  ["convert", "--config={}".format(config_file)])
+        main.main("crossbar", ["convert", "--config={}".format(config_file)])
 
-        self.assertIn(
-            ("JSON formatted configuration written"),
-            self.stdout.getvalue())
+        self.assertIn(("JSON formatted configuration written"), self.stdout.getvalue())
 
-        with open(os.path.join(cbdir, "config.json"), 'r') as f:
-            self.assertEqual(f.read(), """{
+        with open(os.path.join(cbdir, "config.json"), "r") as f:
+            self.assertEqual(
+                f.read(),
+                """{
    "foo": {
       "bar": "spam",
       "baz": {
          "foo": "cat"
       }
    }
-}""")
+}""",
+            )
 
     def test_invalid_yaml_to_json(self):
         """
@@ -274,17 +293,14 @@ foo:
         cbdir = self.mktemp()
         os.makedirs(cbdir)
         config_file = os.path.join(cbdir, "config.yaml")
-        with open(config_file, 'w') as f:
+        with open(config_file, "w") as f:
             f.write("""{{{{{{{{""")
 
         with self.assertRaises(SystemExit) as e:
-            main.main("crossbar",
-                      ["convert", "--config={}".format(config_file)])
+            main.main("crossbar", ["convert", "--config={}".format(config_file)])
 
         self.assertEqual(e.exception.args[0], 1)
-        self.assertIn(
-            ("not seem to be proper YAML"),
-            self.stdout.getvalue())
+        self.assertIn(("not seem to be proper YAML"), self.stdout.getvalue())
 
     def test_json_to_yaml(self):
         """
@@ -294,29 +310,31 @@ foo:
         cbdir = self.mktemp()
         os.makedirs(cbdir)
         config_file = os.path.join(cbdir, "config.json")
-        with open(config_file, 'w') as f:
-            f.write("""{
+        with open(config_file, "w") as f:
+            f.write(
+                """{
    "foo": {
       "bar": "spam",
       "baz": {
          "foo": "cat"
       }
    }
-}""")
+}"""
+            )
 
-        main.main("crossbar",
-                  ["convert", "--config={}".format(config_file)])
+        main.main("crossbar", ["convert", "--config={}".format(config_file)])
 
-        self.assertIn(
-            ("YAML formatted configuration written"),
-            self.stdout.getvalue())
+        self.assertIn(("YAML formatted configuration written"), self.stdout.getvalue())
 
-        with open(os.path.join(cbdir, "config.yaml"), 'r') as f:
-            self.assertEqual(f.read(), """foo:
+        with open(os.path.join(cbdir, "config.yaml"), "r") as f:
+            self.assertEqual(
+                f.read(),
+                """foo:
   bar: spam
   baz:
     foo: cat
-""")
+""",
+            )
 
     def test_invalid_json_to_yaml(self):
         """
@@ -326,14 +344,11 @@ foo:
         cbdir = self.mktemp()
         os.makedirs(cbdir)
         config_file = os.path.join(cbdir, "config.json")
-        with open(config_file, 'w') as f:
+        with open(config_file, "w") as f:
             f.write("""{{{{{{{{""")
 
         with self.assertRaises(SystemExit) as e:
-            main.main("crossbar",
-                      ["convert", "--config={}".format(config_file)])
+            main.main("crossbar", ["convert", "--config={}".format(config_file)])
 
         self.assertEqual(e.exception.args[0], 1)
-        self.assertIn(
-            ("not seem to be proper JSON"),
-            self.stdout.getvalue())
+        self.assertIn(("not seem to be proper JSON"), self.stdout.getvalue())

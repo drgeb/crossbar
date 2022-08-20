@@ -34,7 +34,7 @@ from txaio import make_logger
 
 from crossbar.router.auth.pending import PendingAuth
 
-__all__ = ('PendingAuthTicket',)
+__all__ = ("PendingAuthTicket",)
 
 
 class PendingAuthTicket(PendingAuth):
@@ -45,7 +45,7 @@ class PendingAuthTicket(PendingAuth):
 
     log = make_logger()
 
-    AUTHMETHOD = 'ticket'
+    AUTHMETHOD = "ticket"
 
     def __init__(self, session, config):
         PendingAuth.__init__(self, session, config)
@@ -62,48 +62,56 @@ class PendingAuthTicket(PendingAuth):
         self._authid = details.authid
 
         # use static principal database from configuration
-        if self._config['type'] == 'static':
+        if self._config["type"] == "static":
 
-            self._authprovider = 'static'
+            self._authprovider = "static"
 
-            if self._authid in self._config.get('principals', {}):
+            if self._authid in self._config.get("principals", {}):
 
-                principal = self._config['principals'][self._authid]
-                principal['extra'] = details.authextra
+                principal = self._config["principals"][self._authid]
+                principal["extra"] = details.authextra
 
                 error = self._assign_principal(principal)
                 if error:
                     return error
 
                 # now set set signature as expected for WAMP-Ticket
-                self._signature = principal['ticket']
+                self._signature = principal["ticket"]
 
                 return types.Challenge(self._authmethod)
             else:
-                return types.Deny(message='no principal with authid "{}" exists'.format(self._authid))
+                return types.Deny(
+                    message='no principal with authid "{}" exists'.format(self._authid)
+                )
 
         # use configured procedure to dynamically get a ticket for the principal
-        elif self._config['type'] == 'dynamic':
+        elif self._config["type"] == "dynamic":
 
-            self._authprovider = 'dynamic'
+            self._authprovider = "dynamic"
 
             error = self._init_dynamic_authenticator()
             if error:
                 return error
 
-            self._session_details['authmethod'] = self._authmethod  # from AUTHMETHOD, via base
-            self._session_details['authextra'] = details.authextra
+            self._session_details[
+                "authmethod"
+            ] = self._authmethod  # from AUTHMETHOD, via base
+            self._session_details["authextra"] = details.authextra
 
             return types.Challenge(self._authmethod)
 
         else:
             # should not arrive here, as config errors should be caught earlier
-            return types.Deny(message='invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type']))
+            return types.Deny(
+                message='invalid authentication configuration (authentication type "{}" is unknown)'.format(
+                    self._config["type"]
+                )
+            )
 
     def authenticate(self, signature):
 
         # WAMP-Ticket "static"
-        if self._authprovider == 'static':
+        if self._authprovider == "static":
 
             # when doing WAMP-Ticket from static configuration, the ticket we
             # expect was previously stored in self._signature
@@ -120,19 +128,23 @@ class PendingAuthTicket(PendingAuth):
                     sig=signature,
                     sig_type=type(signature),
                 )
-                return types.Deny(message="ticket in static WAMP-Ticket authentication is invalid")
+                return types.Deny(
+                    message="ticket in static WAMP-Ticket authentication is invalid"
+                )
 
         # WAMP-Ticket "dynamic"
-        elif self._authprovider == 'dynamic':
+        elif self._authprovider == "dynamic":
 
-            self._session_details['ticket'] = signature
-            d = self._authenticator_session.call(self._authenticator, self._realm, self._authid, self._session_details)
+            self._session_details["ticket"] = signature
+            d = self._authenticator_session.call(
+                self._authenticator, self._realm, self._authid, self._session_details
+            )
 
             def on_authenticate_ok(principal):
                 # backwards compatibility: dynamic ticket authenticator
                 # was expected to return a role directly
                 if isinstance(principal, str):
-                    principal = {'role': principal}
+                    principal = {"role": principal}
 
                 error = self._assign_principal(principal)
                 if error:
@@ -149,4 +161,8 @@ class PendingAuthTicket(PendingAuth):
 
         else:
             # should not arrive here, as config errors should be caught earlier
-            return types.Deny(message='invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type']))
+            return types.Deny(
+                message='invalid authentication configuration (authentication type "{}" is unknown)'.format(
+                    self._config["type"]
+                )
+            )

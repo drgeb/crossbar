@@ -3,7 +3,7 @@
 RawSocket Transport
 ===================
 
-Quick Links: :doc:`Transport Endpoints <Transport-Endpoints>` 
+Quick Links: :doc:`Transport Endpoints <Transport-Endpoints>`
 
 The **RawSocket Transport** implements WAMP-over-RawSocket and supports
 TCP/TLS as well as Unix domain socket, each combined with JSON and
@@ -120,4 +120,3 @@ Example - Connecting Transport
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Write me.
-

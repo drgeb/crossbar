@@ -53,18 +53,16 @@ class MockPublisherSession(object):
     """
     A mock WAMP session.
     """
+
     def __init__(self, testCase):
         self._published_messages = []
 
         def publish(topic, *args, **kwargs):
             messageID = random.randint(0, 100000)
 
-            self._published_messages.append({
-                "id": messageID,
-                "topic": topic,
-                "args": args,
-                "kwargs": kwargs
-            })
+            self._published_messages.append(
+                {"id": messageID, "topic": topic, "args": args, "kwargs": kwargs}
+            )
 
             return publishedMessage(id=messageID)
 
@@ -76,27 +74,37 @@ class MockPublisherSession(object):
 
 def makeSignedArguments(params, signKey, signSecret, body):
 
-    params[b'timestamp'] = [util.utcnow().encode()]
-    params[b'seq'] = [b"1"]
-    params[b'key'] = [signKey.encode()]
-    params[b'nonce'] = [str(random.randint(0, 9007199254740992)).encode()]
+    params[b"timestamp"] = [util.utcnow().encode()]
+    params[b"seq"] = [b"1"]
+    params[b"key"] = [signKey.encode()]
+    params[b"nonce"] = [str(random.randint(0, 9007199254740992)).encode()]
 
     # HMAC[SHA256]_{secret} (key | timestamp | seq | nonce | body) => signature
 
-    hm = hmac.new(signSecret.encode('utf8'), None, hashlib.sha256)
-    hm.update(params[b'key'][0])
-    hm.update(params[b'timestamp'][0])
-    hm.update(params[b'seq'][0])
-    hm.update(params[b'nonce'][0])
+    hm = hmac.new(signSecret.encode("utf8"), None, hashlib.sha256)
+    hm.update(params[b"key"][0])
+    hm.update(params[b"timestamp"][0])
+    hm.update(params[b"seq"][0])
+    hm.update(params[b"nonce"][0])
     hm.update(body)
     signature = base64.urlsafe_b64encode(hm.digest())
-    params[b'signature'] = [signature]
+    params[b"signature"] = [signature]
 
     return params
 
 
-def renderResource(resource, path, params=None, method=b"GET", body=b"", isSecure=False,
-                   headers=None, sign=False, signKey=None, signSecret=None):
+def renderResource(
+    resource,
+    path,
+    params=None,
+    method=b"GET",
+    body=b"",
+    isSecure=False,
+    headers=None,
+    sign=False,
+    signKey=None,
+    signSecret=None,
+):
 
     params = {} if params is None else params
     headers = {} if params is None else headers
@@ -107,8 +115,9 @@ def renderResource(resource, path, params=None, method=b"GET", body=b"", isSecur
     if sign:
         params = makeSignedArguments(params, signKey, signSecret, body)
 
-    req = request(path, args=params, method=method, isSecure=isSecure,
-                  headers=headers, body=body)
+    req = request(
+        path, args=params, method=method, isSecure=isSecure, headers=headers, body=body
+    )
 
     d = _render(resource, req)
     d.addCallback(_cb, req)
@@ -119,13 +128,11 @@ MockResponse = namedtuple("MockResponse", ["code", "headers"])
 
 
 class MockHeaders(object):
-
     def getAllRawHeaders(self):
         return {b"foo": [b"bar"]}
 
 
 class MockWebTransport(object):
-
     def __init__(self, testCase):
         self.testCase = testCase
         self._code = None
@@ -138,8 +145,7 @@ class MockWebTransport(object):
 
     def request(self, *args, **kwargs):
         self.maderequest = {"args": args, "kwargs": kwargs}
-        resp = MockResponse(headers=MockHeaders(),
-                            code=self._code)
+        resp = MockResponse(headers=MockHeaders(), code=self._code)
         d = Deferred()
         reactor.callLater(0.0, d.callback, resp)
         return d
@@ -152,7 +158,6 @@ class MockWebTransport(object):
 
 
 class MockTransport(object):
-
     def __init__(self, handler):
         self._log = False
         self._handler = handler
@@ -164,7 +169,10 @@ class MockTransport(object):
 
         self._handler.onOpen(self)
 
-        roles = {'broker': role.RoleBrokerFeatures(), 'dealer': role.RoleDealerFeatures()}
+        roles = {
+            "broker": role.RoleBrokerFeatures(),
+            "dealer": role.RoleDealerFeatures(),
+        }
 
         msg = message.Welcome(self._my_session_id, roles)
         self._handler.onMessage(msg)
@@ -196,9 +204,15 @@ class MockTransport(object):
                     reactor.callLater(0, published)
 
             elif len(msg.topic) == 0:
-                reply = message.Error(message.Publish.MESSAGE_TYPE, msg.request, 'wamp.error.invalid_uri')
+                reply = message.Error(
+                    message.Publish.MESSAGE_TYPE, msg.request, "wamp.error.invalid_uri"
+                )
             else:
-                reply = message.Error(message.Publish.MESSAGE_TYPE, msg.request, 'wamp.error.not_authorized')
+                reply = message.Error(
+                    message.Publish.MESSAGE_TYPE,
+                    msg.request,
+                    "wamp.error.not_authorized",
+                )
 
         elif isinstance(msg, message.Error):
             # Convert an invocation error into a call error
@@ -214,12 +228,20 @@ class MockTransport(object):
                 self._invocations[msg.request] = msg.request
 
                 def invoke():
-                    self._s(message.Invocation(msg.request, registration, args=msg.args, kwargs=msg.kwargs))
+                    self._s(
+                        message.Invocation(
+                            msg.request, registration, args=msg.args, kwargs=msg.kwargs
+                        )
+                    )
 
                 reactor.callLater(0, invoke)
 
             else:
-                reply = message.Error(message.Call.MESSAGE_TYPE, msg.request, 'wamp.error.no_such_procedure')
+                reply = message.Error(
+                    message.Call.MESSAGE_TYPE,
+                    msg.request,
+                    "wamp.error.no_such_procedure",
+                )
 
         elif isinstance(msg, message.Yield):
             if msg.request in self._invocations:

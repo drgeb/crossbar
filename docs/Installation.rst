@@ -1,5 +1,5 @@
 :orphan:
-  
+
 .. _installation:
 
 
@@ -7,7 +7,7 @@ Installing Crossbar.io
 ======================
 
 Below are different ways of installing Crossbar.io. We recommend our
-`Docker images`_ 
+`Docker images`_
 
 If you have an installation related question, please also check the  :doc:`Installation-FAQ <Installation-FAQ>` .
 
@@ -18,7 +18,7 @@ We provide official Docker images for Crossbar.io in different flavors.
 This is both a quick way getting started with Crossbar.io and a good
 approach going to production:
 
-*  :doc:`Getting Started <../Getting-Started>`  
+*  :doc:`Getting Started <../Getting-Started>`
 
 
 Other Platforms
@@ -27,7 +27,7 @@ Other Platforms
 We provide installation instructions for setting up Crossbar.io on your
 own systems for different operating systems or environments.
 
-*  :doc:`Installation on Linux <Installation-on-Linux>`  
+*  :doc:`Installation on Linux <Installation-on-Linux>`
 *  :doc:`Installation on Mac OS X <Installation-on-Mac-OS-X>`
 *  :doc:`Installation on Windows <Installation-on-Windows>`
 

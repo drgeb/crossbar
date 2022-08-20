@@ -109,7 +109,7 @@ The ``options`` dictionary has the following configuration parameters:
 +-------------------+----------------------------------------------------------------------------------------------------------------+
 | error_response    | A string to send as the body in an unsuccessful reply (default is NOT OK)                                      |
 +-------------------+----------------------------------------------------------------------------------------------------------------+
-| github_secret     | The same secret you told GitHub when creating the WebHook configuration.                                       | 
+| github_secret     | The same secret you told GitHub when creating the WebHook configuration.                                       |
 |                   | A string to send as the body in an unsuccessful reply (default is NOT OK)                                      |
 +-------------------+----------------------------------------------------------------------------------------------------------------+
 

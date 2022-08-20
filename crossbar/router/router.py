@@ -39,26 +39,28 @@ from autobahn.wamp.exception import ProtocolError
 from crossbar.router import RouterOptions
 from crossbar.router.broker import Broker
 from crossbar.router.dealer import Dealer
-from crossbar.router.role import RouterRole, \
-    RouterTrustedRole, RouterRoleStaticAuth, \
-    RouterRoleDynamicAuth
-
-__all__ = (
-    'RouterFactory',
+from crossbar.router.role import (
+    RouterRole,
+    RouterTrustedRole,
+    RouterRoleStaticAuth,
+    RouterRoleDynamicAuth,
 )
+
+__all__ = ("RouterFactory",)
 
 
 def _is_client_session(session):
-    return hasattr(session, '_session_details')
+    return hasattr(session, "_session_details")
 
 
 class Router(object):
     """
     Crossbar.io core router class.
     """
+
     log = make_logger()
 
-    RESERVED_ROLES = ['trusted']
+    RESERVED_ROLES = ["trusted"]
     """
     Roles with these URIs are built-in and cannot be added/dropped.
     """
@@ -89,11 +91,11 @@ class Router(object):
         self._options = options or RouterOptions()
         self._store = store
         self._realm = realm
-        self.realm = realm.config['name']
+        self.realm = realm.config["name"]
 
         self._trace_traffic = False
         self._trace_traffic_roles_include = None
-        self._trace_traffic_roles_exclude = ['trusted']
+        self._trace_traffic_roles_exclude = ["trusted"]
 
         # map: session_id -> session
         self._session_id_to_session = {}
@@ -106,9 +108,7 @@ class Router(object):
         self._dealer = self.dealer(self, factory._reactor, self._options)
         self._attached = 0
 
-        self._roles = {
-            'trusted': RouterTrustedRole(self, 'trusted')
-        }
+        self._roles = {"trusted": RouterTrustedRole(self, "trusted")}
 
         # FIXME: this was previsouly just checking for existence of
         # self._factory._worker._maybe_trace_tx_msg / _maybe_trace_rx_msg
@@ -128,13 +128,11 @@ class Router(object):
         """
         stats = {
             # number of WAMP authentication roles defined on this realm
-            'roles': len(self._roles),
-
+            "roles": len(self._roles),
             # number of WAMP sessions currently joined on this realm
-            'sessions': self._attached,
-
+            "sessions": self._attached,
             # WAMP message routing statistics
-            'messages': self._message_stats
+            "messages": self._message_stats,
         }
         if reset:
             self.reset_stats()
@@ -146,10 +144,9 @@ class Router(object):
         """
         self._message_stats = {
             # number of WAMP messages (by type) sent on total by the router
-            'sent': {},
-
+            "sent": {},
             # number of WAMP messages (by type) received in total by the router
-            'received': {},
+            "received": {},
         }
 
     @property
@@ -166,26 +163,35 @@ class Router(object):
         """
         Implements :func:`autobahn.wamp.interfaces.IRouter.attach`
         """
-        self.log.info('{klass}.attach(session={session})',
-                      klass=self.__class__.__name__,
-                      session=session._session_id if session else None)
+        self.log.info(
+            "{klass}.attach(session={session})",
+            klass=self.__class__.__name__,
+            session=session._session_id if session else None,
+        )
 
         if session._session_id not in self._session_id_to_session:
             self._session_id_to_session[session._session_id] = session
         else:
-            raise Exception("session with ID {} already attached".format(session._session_id))
+            raise Exception(
+                "session with ID {} already attached".format(session._session_id)
+            )
 
         self._broker.attach(session)
         self._dealer.attach(session)
 
         self._attached += 1
 
-        self.log.info('{klass}.attach(session={session}): attached session {session} to router realm "{realm}"',
-                      klass=self.__class__.__name__,
-                      session=session._session_id if session else None,
-                      realm=self.realm)
+        self.log.info(
+            '{klass}.attach(session={session}): attached session {session} to router realm "{realm}"',
+            klass=self.__class__.__name__,
+            session=session._session_id if session else None,
+            realm=self.realm,
+        )
 
-        return {'broker': self._broker._role_features, 'dealer': self._dealer._role_features}
+        return {
+            "broker": self._broker._role_features,
+            "dealer": self._dealer._role_features,
+        }
 
     def _session_joined(self, session, session_details):
         """
@@ -205,13 +211,13 @@ class Router(object):
             self._store.event_store.store_session_joined(session, session_details)
 
         # log session details, but skip Crossbar.io internal sessions
-        if self.realm != 'crossbar':
+        if self.realm != "crossbar":
             self.log.debug(
                 'session "{session_id}" joined realm "{realm}"',
                 session_id=session_details.session,
                 realm=self.realm,
             )
-            self.log.trace('{session_details}', details=session_details)
+            self.log.trace("{session_details}", details=session_details)
 
     def _session_left(self, session, session_details, close_details):
         """
@@ -223,21 +229,25 @@ class Router(object):
         self._authrole_to_sessions[session_details.authrole].discard(session)
 
         if self._store:
-            self._store.event_store.store_session_left(session, session_details, close_details)
+            self._store.event_store.store_session_left(
+                session, session_details, close_details
+            )
 
         # log session details, but skip Crossbar.io internal sessions
-        if self.realm != 'crossbar':
+        if self.realm != "crossbar":
             self.log.debug(
                 'session "{session_id}" left realm "{realm}"',
                 session_id=session_details.session,
                 realm=self.realm,
             )
-            self.log.trace('{details}', details=session_details)
+            self.log.trace("{details}", details=session_details)
 
     def detach(self, session=None):
-        self.log.info('{klass}.detach(session={session})',
-                      klass=self.__class__.__name__,
-                      session=session._session_id if session else None)
+        self.log.info(
+            "{klass}.detach(session={session})",
+            klass=self.__class__.__name__,
+            session=session._session_id if session else None,
+        )
 
         detached_session_ids = []
         if session is None:
@@ -250,11 +260,13 @@ class Router(object):
             self._detach(session)
             detached_session_ids.append(session._session_id)
 
-        self.log.info('{klass}.detach(session={session}): detached sessions {detached_session_ids} from router realm "{realm}"',
-                      klass=self.__class__.__name__,
-                      session=session._session_id if session else None,
-                      detached_session_ids=detached_session_ids,
-                      realm=self.realm)
+        self.log.info(
+            '{klass}.detach(session={session}): detached sessions {detached_session_ids} from router realm "{realm}"',
+            klass=self.__class__.__name__,
+            session=session._session_id if session else None,
+            detached_session_ids=detached_session_ids,
+            realm=self.realm,
+        )
 
         return detached_session_ids
 
@@ -268,7 +280,9 @@ class Router(object):
         if session._session_id in self._session_id_to_session:
             del self._session_id_to_session[session._session_id]
         else:
-            raise Exception("session with ID {} not attached".format(session._session_id))
+            raise Exception(
+                "session with ID {} not attached".format(session._session_id)
+            )
 
         self._attached -= 1
         if not self._attached:
@@ -279,9 +293,15 @@ class Router(object):
     def _check_trace(self, session, msg):
         if not self._trace_traffic:
             return False
-        if self._trace_traffic_roles_include and session._authrole not in self._trace_traffic_roles_include:
+        if (
+            self._trace_traffic_roles_include
+            and session._authrole not in self._trace_traffic_roles_include
+        ):
             return False
-        if self._trace_traffic_roles_exclude and session._authrole in self._trace_traffic_roles_exclude:
+        if (
+            self._trace_traffic_roles_exclude
+            and session._authrole in self._trace_traffic_roles_exclude
+        ):
             return False
         return True
 
@@ -295,13 +315,13 @@ class Router(object):
             if self._is_traced:
                 self._factory._worker._maybe_trace_tx_msg(session, msg)
         else:
-            self.log.debug('skip sending msg - transport already closed')
+            self.log.debug("skip sending msg - transport already closed")
 
         # update WAMP message routing statistics
         msg_type = msg.__class__.__name__.lower()
-        if msg_type not in self._message_stats['sent']:
-            self._message_stats['sent'][msg_type] = 0
-        self._message_stats['sent'][msg_type] += 1
+        if msg_type not in self._message_stats["sent"]:
+            self._message_stats["sent"][msg_type] = 0
+        self._message_stats["sent"][msg_type] += 1
 
     def process(self, session, msg):
         """
@@ -343,7 +363,10 @@ class Router(object):
             elif isinstance(msg, message.Yield):
                 self._dealer.processYield(session, msg)
 
-            elif isinstance(msg, message.Error) and msg.request_type == message.Invocation.MESSAGE_TYPE:
+            elif (
+                isinstance(msg, message.Error)
+                and msg.request_type == message.Invocation.MESSAGE_TYPE
+            ):
                 self._dealer.processInvocationError(session, msg)
 
             else:
@@ -351,14 +374,14 @@ class Router(object):
         except ProtocolError:
             raise
         except:
-            self.log.error('INTERNAL ERROR in router incoming message processing')
+            self.log.error("INTERNAL ERROR in router incoming message processing")
             self.log.failure()
 
         # update WAMP message routing statistics
         msg_type = msg.__class__.__name__.lower()
-        if msg_type not in self._message_stats['received']:
-            self._message_stats['received'][msg_type] = 0
-        self._message_stats['received'][msg_type] += 1
+        if msg_type not in self._message_stats["received"]:
+            self._message_stats["received"][msg_type] = 0
+        self._message_stats["received"][msg_type] += 1
 
     def has_role(self, uri):
         """
@@ -414,8 +437,8 @@ class Router(object):
 
         Implements :func:`autobahn.wamp.interfaces.IRouter.authorize`
         """
-        assert(type(uri) == str)
-        assert(action in ['call', 'register', 'publish', 'subscribe'])
+        assert type(uri) == str
+        assert action in ["call", "register", "publish", "subscribe"]
 
         # the role under which the session that wishes to perform the given action on
         # the given URI was authenticated under
@@ -438,24 +461,27 @@ class Router(object):
         def got_authorization(authorization):
             # backward compatibility
             if isinstance(authorization, bool):
-                authorization = {
-                    'allow': authorization,
-                    'cache': False
-                }
-                if action in ['call', 'publish']:
-                    authorization['disclose'] = False
+                authorization = {"allow": authorization, "cache": False}
+                if action in ["call", "publish"]:
+                    authorization["disclose"] = False
 
             auto_disclose_trusted = False
-            if auto_disclose_trusted and role == 'trusted' and action in ['call', 'publish']:
-                authorization['disclose'] = True
+            if (
+                auto_disclose_trusted
+                and role == "trusted"
+                and action in ["call", "publish"]
+            ):
+                authorization["disclose"] = True
 
-            self.log.debug("Authorized action '{action}' for URI '{uri}' by session {session_id} with authid '{authid}' and authrole '{authrole}' -> authorization: {authorization}",
-                           session_id=session._session_id,
-                           uri=uri,
-                           action=action,
-                           authid=session._authid,
-                           authrole=session._authrole,
-                           authorization=authorization)
+            self.log.debug(
+                "Authorized action '{action}' for URI '{uri}' by session {session_id} with authid '{authid}' and authrole '{authrole}' -> authorization: {authorization}",
+                session_id=session._session_id,
+                uri=uri,
+                action=action,
+                authid=session._authid,
+                authrole=session._authrole,
+                authorization=authorization,
+            )
 
             return authorization
 
@@ -466,14 +492,19 @@ class Router(object):
         """
         Implements :func:`autobahn.wamp.interfaces.IRouter.validate`
         """
-        self.log.debug("Validate '{payload_type}' for '{uri}'",
-                       payload_type=payload_type, uri=uri, cb_level="trace")
+        self.log.debug(
+            "Validate '{payload_type}' for '{uri}'",
+            payload_type=payload_type,
+            uri=uri,
+            cb_level="trace",
+        )
 
 
 class RouterFactory(object):
     """
     Crossbar.io core router factory.
     """
+
     log = make_logger()
     router = Router
     """
@@ -489,9 +520,12 @@ class RouterFactory(object):
         self._node_id = node_id
         self._worker = worker
         self._routers = {}
-        self._options = options or RouterOptions(uri_check=RouterOptions.URI_CHECK_LOOSE)
+        self._options = options or RouterOptions(
+            uri_check=RouterOptions.URI_CHECK_LOOSE
+        )
         # XXX this should get passed in from .. somewhere
         from twisted.internet import reactor
+
         self._reactor = reactor
 
     @property
@@ -517,14 +551,18 @@ class RouterFactory(object):
     def on_last_detach(self, router):
         if router.realm in self._routers:
             del self._routers[router.realm]
-            self.log.debug('{klass}.on_last_detach: router removed for realm "{realm}"',
-                           klass=self.__class__.__name__,
-                           realm=router.realm)
+            self.log.debug(
+                '{klass}.on_last_detach: router removed for realm "{realm}"',
+                klass=self.__class__.__name__,
+                realm=router.realm,
+            )
         else:
-            self.log.warn('{klass}.on_last_detach: realm "{realm}" not in router realms (skipped removal) - current realms: {realms}',
-                          klass=self.__class__.__name__,
-                          realm=router.realm,
-                          realms=sorted(self._routers.keys()))
+            self.log.warn(
+                '{klass}.on_last_detach: realm "{realm}" not in router realms (skipped removal) - current realms: {realms}',
+                klass=self.__class__.__name__,
+                realm=router.realm,
+                realms=sorted(self._routers.keys()),
+            )
 
     def start_realm(self, realm):
         """
@@ -536,22 +574,26 @@ class RouterFactory(object):
         :returns: The router instance for the started realm.
         :rtype: instance of :class:`crossbar.router.session.CrossbarRouter`
         """
-        self.log.debug("CrossbarRouterFactory.start_realm(realm = {realm})",
-                       realm=realm)
+        self.log.debug(
+            "CrossbarRouterFactory.start_realm(realm = {realm})", realm=realm
+        )
 
         # get name of realm (an URI in general)
         #
-        uri = realm.config['name']
-        assert(uri not in self._routers)
+        uri = realm.config["name"]
+        assert uri not in self._routers
 
         # if configuration of realm contains a "store" item, set up a
         # realm store as appropriate ..
         store = None
-        if 'store' in realm.config:
+        if "store" in realm.config:
             psn = self._worker.personality
-            store = psn.create_realm_store(psn, self, realm.config['store'])
-            self.log.info('Initialized realm store {rsk} for realm "{realm}"',
-                          rsk=store.__class__, realm=uri)
+            store = psn.create_realm_store(psn, self, realm.config["store"])
+            self.log.info(
+                'Initialized realm store {rsk} for realm "{realm}"',
+                rsk=store.__class__,
+                realm=uri,
+            )
 
         # now create a router for the realm
         #
@@ -559,25 +601,29 @@ class RouterFactory(object):
             uri_check=self._options.uri_check,
             event_dispatching_chunk_size=self._options.event_dispatching_chunk_size,
         )
-        for arg in ['uri_check', 'event_dispatching_chunk_size']:
-            if arg in realm.config.get('options', {}):
-                setattr(options, arg, realm.config['options'][arg])
+        for arg in ["uri_check", "event_dispatching_chunk_size"]:
+            if arg in realm.config.get("options", {}):
+                setattr(options, arg, realm.config["options"][arg])
 
         router = Router(self, realm, options, store=store)
 
         self._routers[uri] = router
-        self.log.info('{klass}.start_realm: router created for realm "{uri}"',
-                      klass=self.__class__.__name__,
-                      uri=uri)
+        self.log.info(
+            '{klass}.start_realm: router created for realm "{uri}"',
+            klass=self.__class__.__name__,
+            uri=uri,
+        )
 
         return router
 
     def stop_realm(self, realm):
-        self.log.info('{klass}.stop_realm(realm="{realm}")',
-                      klass=self.__class__.__name__,
-                      realm=realm)
+        self.log.info(
+            '{klass}.stop_realm(realm="{realm}")',
+            klass=self.__class__.__name__,
+            realm=realm,
+        )
 
-        assert(type(realm) == str)
+        assert type(realm) == str
 
         if realm not in self._routers:
             raise Exception('no router started for realm "{}"'.format(realm))
@@ -591,21 +637,24 @@ class RouterFactory(object):
         return detached_sessions
 
     def add_role(self, realm, config):
-        self.log.debug('CrossbarRouterFactory.add_role(realm="{realm}", config={config})',
-                       realm=realm, config=config)
+        self.log.debug(
+            'CrossbarRouterFactory.add_role(realm="{realm}", config={config})',
+            realm=realm,
+            config=config,
+        )
 
-        assert(type(realm) == str)
-        assert(realm in self._routers)
+        assert type(realm) == str
+        assert realm in self._routers
 
         router = self._routers[realm]
-        uri = config['name']
+        uri = config["name"]
 
-        if 'permissions' in config:
-            role = RouterRoleStaticAuth(router, uri, config['permissions'])
-        elif 'authorizer' in config:
-            role = RouterRoleDynamicAuth(router, uri, config['authorizer'])
+        if "permissions" in config:
+            role = RouterRoleStaticAuth(router, uri, config["permissions"])
+        elif "authorizer" in config:
+            role = RouterRoleDynamicAuth(router, uri, config["authorizer"])
         else:
-            allow_by_default = config.get('allow-by-default', False)
+            allow_by_default = config.get("allow-by-default", False)
             role = RouterRole(router, uri, allow_by_default=allow_by_default)
 
         router.add_role(role)
@@ -619,11 +668,14 @@ class RouterFactory(object):
         :param role: The URI of the role (on the realm) to drop.
         :type role: str
         """
-        self.log.debug('CrossbarRouterFactory.drop_role(realm="{realm}", role={role})',
-                       realm=realm, role=role)
+        self.log.debug(
+            'CrossbarRouterFactory.drop_role(realm="{realm}", role={role})',
+            realm=realm,
+            role=role,
+        )
 
-        assert(type(realm) == str)
-        assert(type(role) == str)
+        assert type(realm) == str
+        assert type(role) == str
 
         if realm not in self._routers:
             raise Exception('no router started for realm "{}"'.format(realm))
@@ -631,7 +683,9 @@ class RouterFactory(object):
         router = self._routers[realm]
 
         if role not in router._roles:
-            raise Exception('no role "{}" started on router for realm "{}"'.format(role, realm))
+            raise Exception(
+                'no role "{}" started on router for realm "{}"'.format(role, realm)
+            )
 
         role = router._roles[role]
         router.drop_role(role)

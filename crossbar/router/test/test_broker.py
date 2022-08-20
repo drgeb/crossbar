@@ -45,6 +45,7 @@ from crossbar.router.broker import Broker
 from crossbar.router.role import RouterRoleStaticAuth
 
 from twisted.internet import defer, reactor
+
 try:
     from twisted.test.proto_helpers import Clock
 except ImportError:
@@ -67,25 +68,25 @@ class TestBrokerPublish(unittest.TestCase):
         self.router_factory = RouterFactory(None, None)
 
         # start a realm
-        self.realm = RouterRealm(None, None, {'name': 'realm1'})
+        self.realm = RouterRealm(None, None, {"name": "realm1"})
         self.router_factory.start_realm(self.realm)
 
         # allow everything
-        self.router = self.router_factory.get('realm1')
+        self.router = self.router_factory.get("realm1")
         self.router.add_role(
             RouterRoleStaticAuth(
                 self.router,
-                'test_role',
+                "test_role",
                 default_permissions={
-                    'uri': 'com.example.',
-                    'match': 'prefix',
-                    'allow': {
-                        'call': True,
-                        'register': True,
-                        'publish': True,
-                        'subscribe': True,
-                    }
-                }
+                    "uri": "com.example.",
+                    "match": "prefix",
+                    "allow": {
+                        "call": True,
+                        "register": True,
+                        "publish": True,
+                        "subscribe": True,
+                    },
+                },
             )
         )
 
@@ -103,11 +104,10 @@ class TestBrokerPublish(unittest.TestCase):
         d = txaio.create_future()
 
         class TestSession(ApplicationSession):
-
             def onJoin(self, details):
                 txaio.resolve(d, None)
 
-        session = TestSession(types.ComponentConfig('realm1'))
+        session = TestSession(types.ComponentConfig("realm1"))
 
         self.session_factory.add(session, self.router)
 
@@ -129,13 +129,13 @@ class TestBrokerPublish(unittest.TestCase):
             def onUserError(self, fail, msg):
                 errors.append((fail, msg))
 
-        session = TestSession(types.ComponentConfig('realm1'))
+        session = TestSession(types.ComponentConfig("realm1"))
         from crossbar.router.session import RouterApplicationSession
 
         # Note to self: original code was logging directly in
         # RouterApplicationSession -- which *may* actually be better?
         # or not...
-        with mock.patch.object(RouterApplicationSession, 'log') as logger:
+        with mock.patch.object(RouterApplicationSession, "log") as logger:
             # this should call onJoin, triggering our error
             self.session_factory.add(session, self.router)
 
@@ -149,7 +149,7 @@ class TestBrokerPublish(unittest.TestCase):
                 call = logger.method_calls[0]
                 # for a MagicMock call-object, 0th thing is the method-name, 1st
                 # thing is the arg-tuple, 2nd thing is the kwargs.
-                self.assertEqual(call[0], 'failure')
+                self.assertEqual(call[0], "failure")
                 self.assertEqual(call[1][0].value, the_exception)
 
     def test_router_session_internal_error_onHello(self):
@@ -160,17 +160,18 @@ class TestBrokerPublish(unittest.TestCase):
 
         # setup
         transport = mock.MagicMock()
-        transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
+        transport.get_channel_id = mock.MagicMock(return_value=b"deadbeef")
         the_exception = RuntimeError("kerblam")
 
         def boom(*args, **kw):
             raise the_exception
+
         session = self.session_factory()  # __call__ on the _RouterSessionFactory
         session.onHello = boom
         session.onOpen(transport)
-        msg = message.Hello('realm1', dict(caller=role.RoleCallerFeatures()))
+        msg = message.Hello("realm1", dict(caller=role.RoleCallerFeatures()))
 
-        with mock.patch.object(session, 'log') as logger:
+        with mock.patch.object(session, "log") as logger:
             # do the test; should call onHello which is now "boom", above
             session.onMessage(msg)
 
@@ -179,9 +180,9 @@ class TestBrokerPublish(unittest.TestCase):
             call = logger.method_calls[0]
             # for a MagicMock call-object, 0th thing is the method-name, 1st
             # thing is the arg-tuple, 2nd thing is the kwargs.
-            self.assertEqual(call[0], 'warn')
-            self.assertTrue('err' in call[2])
-            self.assertEqual(call[2]['err'].value, the_exception)
+            self.assertEqual(call[0], "warn")
+            self.assertTrue("err" in call[2])
+            self.assertEqual(call[2]["err"].value, the_exception)
 
     def test_router_session_internal_error_onAuthenticate(self):
         """
@@ -191,15 +192,16 @@ class TestBrokerPublish(unittest.TestCase):
 
         # setup
         transport = mock.MagicMock()
-        transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
+        transport.get_channel_id = mock.MagicMock(return_value=b"deadbeef")
         the_exception = RuntimeError("kerblam")
 
         def boom(*args, **kw):
             raise the_exception
+
         session = self.session_factory()  # __call__ on the _RouterSessionFactory
         session.onAuthenticate = boom
         session.onOpen(transport)
-        msg = message.Authenticate('bogus signature')
+        msg = message.Authenticate("bogus signature")
 
         # do the test; should call onHello which is now "boom", above
         session.onMessage(msg)
@@ -214,50 +216,53 @@ class TestBrokerPublish(unittest.TestCase):
         """
 
         from crossbar.router.session import RouterApplicationSession
+
         session = ApplicationSession()
         session.onLeave = mock.Mock()
-        session._realm = 'realm'
+        session._realm = "realm"
         router = Router(
             factory=mock.Mock(),
             realm=RouterRealm(
                 controller=None,
-                id='realm',
-                config=dict(name='realm'),
-            )
+                id="realm",
+                config=dict(name="realm"),
+            ),
         )
         rap = RouterApplicationSession(session, router)
 
-        rap.send(message.Goodbye('wamp.reason.logout', 'some custom message'))
+        rap.send(message.Goodbye("wamp.reason.logout", "some custom message"))
 
         leaves = session.onLeave.mock_calls
         self.assertEqual(1, len(leaves))
         details = leaves[0][1][0]
-        self.assertEqual('wamp.reason.logout', details.reason)
-        self.assertEqual('some custom message', details.message)
+        self.assertEqual("wamp.reason.logout", details.reason)
+        self.assertEqual("some custom message", details.message)
 
     def test_router_session_goodbye_onLeave_error(self):
         """
         Reason should be propagated properly from Goodbye message
         """
         from crossbar.router.session import RouterApplicationSession
+
         session = ApplicationSession()
         the_exception = RuntimeError("onLeave fails")
 
         def boom(*args, **kw):
             raise the_exception
+
         session.onLeave = mock.Mock(side_effect=boom)
-        session._realm = 'realm'
+        session._realm = "realm"
         router = Router(
             factory=mock.Mock(),
             realm=RouterRealm(
                 controller=None,
-                id='realm',
-                config=dict(name='realm'),
-            )
+                id="realm",
+                config=dict(name="realm"),
+            ),
         )
         rap = RouterApplicationSession(session, router)
 
-        rap.send(message.Goodbye('wamp.reason.logout', 'some custom message'))
+        rap.send(message.Goodbye("wamp.reason.logout", "some custom message"))
 
         errors = self.flushLoggedErrors()
         self.assertEqual(1, len(errors))
@@ -269,26 +274,28 @@ class TestBrokerPublish(unittest.TestCase):
         """
 
         from crossbar.router.session import RouterApplicationSession
+
         session = ApplicationSession()
         the_exception = RuntimeError("sad times at ridgemont high")
 
         def boom(*args, **kw):
-            if args[0] == 'disconnect':
+            if args[0] == "disconnect":
                 return defer.fail(the_exception)
             return defer.succeed(None)
+
         session.fire = mock.Mock(side_effect=boom)
-        session._realm = 'realm'
+        session._realm = "realm"
         router = Router(
             factory=mock.Mock(),
             realm=RouterRealm(
                 controller=None,
-                id='realm',
-                config=dict(name='realm'),
-            )
+                id="realm",
+                config=dict(name="realm"),
+            ),
         )
         rap = RouterApplicationSession(session, router)
 
-        rap.send(message.Goodbye('wamp.reason.logout', 'some custom message'))
+        rap.send(message.Goodbye("wamp.reason.logout", "some custom message"))
 
         errors = self.flushLoggedErrors()
         self.assertEqual(1, len(errors))
@@ -307,27 +314,27 @@ class TestBrokerPublish(unittest.TestCase):
 
         fired = []
         session = ApplicationSession()
-        session._realm = 'realm'
+        session._realm = "realm"
         session.fire = mock.Mock(side_effect=mock_fire)
         router = Router(
             factory=mock.Mock(),
             realm=RouterRealm(
                 controller=None,
-                id='realm',
-                config=dict(name='realm'),
-            )
+                id="realm",
+                config=dict(name="realm"),
+            ),
         )
         rap = RouterApplicationSession(session, router)
 
         # we never fake out the 'Welcome' message, so there will be no
         # 'ready' notification...
-        rap.send(message.Goodbye('wamp.reason.logout', 'some custom message'))
+        rap.send(message.Goodbye("wamp.reason.logout", "some custom message"))
 
-        self.assertTrue('connect' in fired)
-        self.assertTrue('join' in fired)
-        self.assertTrue('ready' in fired)
-        self.assertTrue('leave' in fired)
-        self.assertTrue('disconnect' in fired)
+        self.assertTrue("connect" in fired)
+        self.assertTrue("join" in fired)
+        self.assertTrue("ready" in fired)
+        self.assertTrue("leave" in fired)
+        self.assertTrue("disconnect" in fired)
 
     def test_add_and_subscribe(self):
         """
@@ -337,9 +344,8 @@ class TestBrokerPublish(unittest.TestCase):
         d = txaio.create_future()
 
         class TestSession(ApplicationSession):
-
             def onJoin(self, details):
-                d2 = self.subscribe(lambda: None, 'com.example.topic1')
+                d2 = self.subscribe(lambda: None, "com.example.topic1")
 
                 def ok(_):
                     txaio.resolve(d, None)
@@ -349,9 +355,9 @@ class TestBrokerPublish(unittest.TestCase):
 
                 txaio.add_callbacks(d2, ok, error)
 
-        session = TestSession(types.ComponentConfig('realm1'))
+        session = TestSession(types.ComponentConfig("realm1"))
 
-        self.session_factory.add(session, self.router, authrole='test_role')
+        self.session_factory.add(session, self.router, authrole="test_role")
 
         return d
 
@@ -366,10 +372,11 @@ class TestBrokerPublish(unittest.TestCase):
 
         class TestSession(ApplicationSession):
             pass
+
         session0 = TestSession()
         session1 = TestSession()
         router = mock.MagicMock()
-        router.new_correlation_id = lambda: 'fake correlation id'
+        router.new_correlation_id = lambda: "fake correlation id"
         broker = Broker(router, reactor)
 
         # let's just "cheat" our way a little to the right state by
@@ -377,26 +384,30 @@ class TestBrokerPublish(unittest.TestCase):
         # faking out an entire Subscribe etc. flow
         # ...so we need _subscriptions_map to have at least one
         # subscription (our test one) for the topic we'll publish to
-        broker._subscription_map.add_observer(session0, 'test.topic')
+        broker._subscription_map.add_observer(session0, "test.topic")
 
         # simulate the session state we want, which is that a
         # transport is connected (._transport != None) but there
         # _session_id *is* None (not joined yet, or left already)
         self.assertIs(None, session0._session_id)
         session0._transport = mock.MagicMock()
-        session0._transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
+        session0._transport.get_channel_id = mock.MagicMock(return_value=b"deadbeef")
         session1._session_id = 1234  # "from" session should look connected + joined
         session1._transport = mock.MagicMock()
-        session1._transport.channel_id = b'aaaabeef'
+        session1._transport.channel_id = b"aaaabeef"
 
         # here's the main "cheat"; we're faking out the
         # router.authorize because we need it to callback immediately
-        router.authorize = mock.MagicMock(return_value=txaio.create_future_success(dict(allow=True, cache=False, disclose=True)))
+        router.authorize = mock.MagicMock(
+            return_value=txaio.create_future_success(
+                dict(allow=True, cache=False, disclose=True)
+            )
+        )
 
         # now we scan call "processPublish" such that we get to the
         # condition we're interested in (this "comes from" session1
         # beacuse by default publishes don't go to the same session)
-        pubmsg = message.Publish(123, 'test.topic')
+        pubmsg = message.Publish(123, "test.topic")
         broker.processPublish(session1, pubmsg)
 
         # neither session should have sent anything on its transport
@@ -414,12 +425,13 @@ class TestBrokerPublish(unittest.TestCase):
 
         class TestSession(ApplicationSession):
             pass
+
         session0 = TestSession()
         session1 = TestSession()
         session2 = TestSession()
         router = mock.MagicMock()
         router.send = mock.Mock()
-        router.new_correlation_id = lambda: 'fake correlation id'
+        router.new_correlation_id = lambda: "fake correlation id"
         router.is_traced = True
         broker = Broker(router, reactor)
 
@@ -428,29 +440,33 @@ class TestBrokerPublish(unittest.TestCase):
         # faking out an entire Subscribe etc. flow
         # ...so we need _subscriptions_map to have at least one
         # subscription (our test one) for the topic we'll publish to
-        broker._subscription_map.add_observer(session0, 'test.topic')
-        broker._subscription_map.add_observer(session1, 'test.topic')
+        broker._subscription_map.add_observer(session0, "test.topic")
+        broker._subscription_map.add_observer(session1, "test.topic")
 
         session0._session_id = 1000
         session0._transport = mock.MagicMock()
-        session0._transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
+        session0._transport.get_channel_id = mock.MagicMock(return_value=b"deadbeef")
 
         session1._session_id = 1001
         session1._transport = mock.MagicMock()
-        session1._transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
+        session1._transport.get_channel_id = mock.MagicMock(return_value=b"deadbeef")
 
         session2._session_id = 1002
         session2._transport = mock.MagicMock()
-        session2._transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
+        session2._transport.get_channel_id = mock.MagicMock(return_value=b"deadbeef")
 
         # here's the main "cheat"; we're faking out the
         # router.authorize because we need it to callback immediately
-        router.authorize = mock.MagicMock(return_value=txaio.create_future_success(dict(allow=True, cache=False, disclose=True)))
+        router.authorize = mock.MagicMock(
+            return_value=txaio.create_future_success(
+                dict(allow=True, cache=False, disclose=True)
+            )
+        )
 
         # now we scan call "processPublish" such that we get to the
         # condition we're interested in (this "comes from" session1
         # beacuse by default publishes don't go to the same session)
-        pubmsg = message.Publish(123, 'test.topic')
+        pubmsg = message.Publish(123, "test.topic")
         broker.processPublish(session2, pubmsg)
 
         # extract all the event calls
@@ -475,6 +491,7 @@ class TestBrokerPublish(unittest.TestCase):
 
         class TestSession(ApplicationSession):
             pass
+
         session0 = TestSession()
         session1 = TestSession()
         session2 = TestSession()
@@ -486,7 +503,7 @@ class TestBrokerPublish(unittest.TestCase):
         sessions = [session1, session2, session3, session4, session0]
         router = mock.MagicMock()
         router.send = mock.Mock()
-        router.new_correlation_id = lambda: 'fake correlation id'
+        router.new_correlation_id = lambda: "fake correlation id"
         router.is_traced = True
         clock = Clock()
         with replace_loop(clock):
@@ -503,21 +520,27 @@ class TestBrokerPublish(unittest.TestCase):
             # ...so we need _subscriptions_map to have at least one
             # subscription (our test one) for the topic we'll publish to
             for session in sessions:
-                broker._subscription_map.add_observer(session, 'test.topic')
+                broker._subscription_map.add_observer(session, "test.topic")
 
             for i, sess in enumerate(sessions):
                 sess._session_id = 1000 + i
                 sess._transport = mock.MagicMock()
-                sess._transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
+                sess._transport.get_channel_id = mock.MagicMock(
+                    return_value=b"deadbeef"
+                )
 
             # here's the main "cheat"; we're faking out the
             # router.authorize because we need it to callback immediately
-            router.authorize = mock.MagicMock(return_value=txaio.create_future_success(dict(allow=True, cache=False, disclose=True)))
+            router.authorize = mock.MagicMock(
+                return_value=txaio.create_future_success(
+                    dict(allow=True, cache=False, disclose=True)
+                )
+            )
 
             # now we scan call "processPublish" such that we get to the
             # condition we're interested in; should go to all sessions
             # except session0
-            pubmsg = message.Publish(123, 'test.topic')
+            pubmsg = message.Publish(123, "test.topic")
             broker.processPublish(session0, pubmsg)
             clock.advance(1)
             clock.advance(1)
@@ -549,7 +572,7 @@ class TestBrokerPublish(unittest.TestCase):
 
             _private = []
             _events = []
-            _authrole = 'trusted'
+            _authrole = "trusted"
             _session_id = 0
 
             def send(self, *args, **argv):
@@ -559,7 +582,6 @@ class TestBrokerPublish(unittest.TestCase):
                 self._events.append([args, argv])
 
         class TestSession(ApplicationSession):
-
             def __init__(self, *args, **kw):
                 super().__init__(*args, **kw)
                 self._service_session = Session()
@@ -570,17 +592,27 @@ class TestBrokerPublish(unittest.TestCase):
                 router.attach(self._service_session)
 
                 router._broker._router._realm.session = self._service_session
-                subscription = message.Subscribe(self._service_session._session_id, 'com.example.test1')
+                subscription = message.Subscribe(
+                    self._service_session._session_id, "com.example.test1"
+                )
                 router._broker.processSubscribe(self._service_session, subscription)
-                subscription = message.Subscribe(self._service_session._session_id, 'com.example.test2')
+                subscription = message.Subscribe(
+                    self._service_session._session_id, "com.example.test2"
+                )
                 router._broker.processSubscribe(self._service_session, subscription)
-                subscription = message.Subscribe(self._service_session._session_id, 'com.example.test3')
+                subscription = message.Subscribe(
+                    self._service_session._session_id, "com.example.test3"
+                )
                 router._broker.processSubscribe(self._service_session, subscription)
 
                 subscriptions = []
                 for obj in list(self._service_session._private):
-                    subscription = message.Unsubscribe(self._service_session._session_id, subscription=obj.subscription)
-                    router._broker.processUnsubscribe(self._service_session, subscription)
+                    subscription = message.Unsubscribe(
+                        self._service_session._session_id, subscription=obj.subscription
+                    )
+                    router._broker.processUnsubscribe(
+                        self._service_session, subscription
+                    )
                     subscriptions.append(obj.subscription)
 
                 def all_done():
@@ -591,35 +623,75 @@ class TestBrokerPublish(unittest.TestCase):
                     deletes = list(subscriptions)
 
                     for args, argv in self._service_session._events:
-                        if args[0] == 'wamp.subscription.on_create':
-                            test.assertEqual(args[1], self._service_session._session_id, 'on_create: session id is incorrect!')
-                            test.assertTrue(args[2]['id'] in created, 'on_create: subscription id is incorrect!')
-                            created.remove(args[2]['id'])
+                        if args[0] == "wamp.subscription.on_create":
+                            test.assertEqual(
+                                args[1],
+                                self._service_session._session_id,
+                                "on_create: session id is incorrect!",
+                            )
+                            test.assertTrue(
+                                args[2]["id"] in created,
+                                "on_create: subscription id is incorrect!",
+                            )
+                            created.remove(args[2]["id"])
 
-                        if args[0] == 'wamp.subscription.on_subscribe':
-                            test.assertEqual(args[1], self._service_session._session_id, 'on_subscribe: session id is incorrect!')
-                            test.assertTrue(args[2] in subscribes, 'on_subscribe: subscription id is incorrect!')
+                        if args[0] == "wamp.subscription.on_subscribe":
+                            test.assertEqual(
+                                args[1],
+                                self._service_session._session_id,
+                                "on_subscribe: session id is incorrect!",
+                            )
+                            test.assertTrue(
+                                args[2] in subscribes,
+                                "on_subscribe: subscription id is incorrect!",
+                            )
                             subscribes.remove(args[2])
 
-                        if args[0] == 'wamp.subscription.on_unsubscribe':
-                            test.assertEqual(args[1], self._service_session._session_id, 'on_unsubscribe: session id is incorrect!')
-                            test.assertTrue(args[2] in unsubscribes, 'on_unsubscribe: subscription id is incorrect!')
+                        if args[0] == "wamp.subscription.on_unsubscribe":
+                            test.assertEqual(
+                                args[1],
+                                self._service_session._session_id,
+                                "on_unsubscribe: session id is incorrect!",
+                            )
+                            test.assertTrue(
+                                args[2] in unsubscribes,
+                                "on_unsubscribe: subscription id is incorrect!",
+                            )
                             unsubscribes.remove(args[2])
 
-                        if args[0] == 'wamp.subscription.on_delete':
-                            test.assertEqual(args[1], self._service_session._session_id, 'on_delete: session id is incorrect!')
-                            test.assertTrue(args[2] in deletes, 'on_delete: subscription id is incorrect!')
+                        if args[0] == "wamp.subscription.on_delete":
+                            test.assertEqual(
+                                args[1],
+                                self._service_session._session_id,
+                                "on_delete: session id is incorrect!",
+                            )
+                            test.assertTrue(
+                                args[2] in deletes,
+                                "on_delete: subscription id is incorrect!",
+                            )
                             deletes.remove(args[2])
 
-                    test.assertEqual(len(created), 0, 'incorrect response sequence for on_create')
-                    test.assertEqual(len(subscribes), 0, 'incorrect response sequence for on_subscribe')
-                    test.assertEqual(len(unsubscribes), 0, 'incorrect response sequence for on_unsubscribe')
-                    test.assertEqual(len(deletes), 0, 'incorrect response sequence for on_delete')
+                    test.assertEqual(
+                        len(created), 0, "incorrect response sequence for on_create"
+                    )
+                    test.assertEqual(
+                        len(subscribes),
+                        0,
+                        "incorrect response sequence for on_subscribe",
+                    )
+                    test.assertEqual(
+                        len(unsubscribes),
+                        0,
+                        "incorrect response sequence for on_unsubscribe",
+                    )
+                    test.assertEqual(
+                        len(deletes), 0, "incorrect response sequence for on_delete"
+                    )
 
                 reactor.callLater(0, all_done)
 
-        session = TestSession(types.ComponentConfig('realm1'))
-        self.session_factory.add(session, self.router, authrole='trusted')
+        session = TestSession(types.ComponentConfig("realm1"))
+        self.session_factory.add(session, self.router, authrole="trusted")
 
     def test_subscribe_detach(self):
         """
@@ -636,9 +708,10 @@ class TestBrokerPublish(unittest.TestCase):
             request we need to test, then check at the end _events contains the list of
             pub's we are expecting.
             """
+
             _private = []
             _events = []
-            _authrole = 'trusted'
+            _authrole = "trusted"
             _session_id = 0
 
             def send(self, *args, **argv):
@@ -648,7 +721,6 @@ class TestBrokerPublish(unittest.TestCase):
                 self._events.append([args, argv])
 
         class TestSession(ApplicationSession):
-
             def __init__(self, *args, **kw):
                 super().__init__(*args, **kw)
                 self._service_session = Session()
@@ -659,11 +731,17 @@ class TestBrokerPublish(unittest.TestCase):
                 router.attach(self._service_session)
 
                 router._broker._router._realm.session = self._service_session
-                subscription = message.Subscribe(self._service_session._session_id, 'com.example.test1')
+                subscription = message.Subscribe(
+                    self._service_session._session_id, "com.example.test1"
+                )
                 router._broker.processSubscribe(self._service_session, subscription)
-                subscription = message.Subscribe(self._service_session._session_id, 'com.example.test2')
+                subscription = message.Subscribe(
+                    self._service_session._session_id, "com.example.test2"
+                )
                 router._broker.processSubscribe(self._service_session, subscription)
-                subscription = message.Subscribe(self._service_session._session_id, 'com.example.test3')
+                subscription = message.Subscribe(
+                    self._service_session._session_id, "com.example.test3"
+                )
                 router._broker.processSubscribe(self._service_session, subscription)
 
                 subscriptions = []
@@ -686,35 +764,75 @@ class TestBrokerPublish(unittest.TestCase):
 
                     for args, argv in self._service_session._events:
 
-                        if args[0] == 'wamp.subscription.on_create':
-                            test.assertEqual(args[1], self._service_session._session_id, 'on_create: session id is incorrect!')
-                            test.assertTrue(args[2]['id'] in created, 'on_create: subscription id is incorrect!')
-                            created.remove(args[2]['id'])
+                        if args[0] == "wamp.subscription.on_create":
+                            test.assertEqual(
+                                args[1],
+                                self._service_session._session_id,
+                                "on_create: session id is incorrect!",
+                            )
+                            test.assertTrue(
+                                args[2]["id"] in created,
+                                "on_create: subscription id is incorrect!",
+                            )
+                            created.remove(args[2]["id"])
 
-                        if args[0] == 'wamp.subscription.on_subscribe':
-                            test.assertEqual(args[1], self._service_session._session_id, 'on_subscribe: session id is incorrect!')
-                            test.assertTrue(args[2] in subscribes, 'on_subscribe: subscription id is incorrect!')
+                        if args[0] == "wamp.subscription.on_subscribe":
+                            test.assertEqual(
+                                args[1],
+                                self._service_session._session_id,
+                                "on_subscribe: session id is incorrect!",
+                            )
+                            test.assertTrue(
+                                args[2] in subscribes,
+                                "on_subscribe: subscription id is incorrect!",
+                            )
                             subscribes.remove(args[2])
 
-                        if args[0] == 'wamp.subscription.on_unsubscribe':
-                            test.assertEqual(args[1], self._service_session._session_id, 'on_unsubscribe: session id is incorrect!')
-                            test.assertTrue(args[2] in unsubscribes, 'on_unsubscribe: subscription id is incorrect!')
+                        if args[0] == "wamp.subscription.on_unsubscribe":
+                            test.assertEqual(
+                                args[1],
+                                self._service_session._session_id,
+                                "on_unsubscribe: session id is incorrect!",
+                            )
+                            test.assertTrue(
+                                args[2] in unsubscribes,
+                                "on_unsubscribe: subscription id is incorrect!",
+                            )
                             unsubscribes.remove(args[2])
 
-                        if args[0] == 'wamp.subscription.on_delete':
-                            test.assertEqual(args[1], self._service_session._session_id, 'on_delete: session id is incorrect!')
-                            test.assertTrue(args[2] in deletes, 'on_delete: subscription id is incorrect!')
+                        if args[0] == "wamp.subscription.on_delete":
+                            test.assertEqual(
+                                args[1],
+                                self._service_session._session_id,
+                                "on_delete: session id is incorrect!",
+                            )
+                            test.assertTrue(
+                                args[2] in deletes,
+                                "on_delete: subscription id is incorrect!",
+                            )
                             deletes.remove(args[2])
 
-                    test.assertEqual(len(created), 0, 'incorrect response sequence for on_create')
-                    test.assertEqual(len(subscribes), 0, 'incorrect response sequence for on_subscribe')
-                    test.assertEqual(len(unsubscribes), 0, 'incorrect response sequence for on_unsubscribe')
-                    test.assertEqual(len(deletes), 0, 'incorrect response sequence for on_delete')
+                    test.assertEqual(
+                        len(created), 0, "incorrect response sequence for on_create"
+                    )
+                    test.assertEqual(
+                        len(subscribes),
+                        0,
+                        "incorrect response sequence for on_subscribe",
+                    )
+                    test.assertEqual(
+                        len(unsubscribes),
+                        0,
+                        "incorrect response sequence for on_unsubscribe",
+                    )
+                    test.assertEqual(
+                        len(deletes), 0, "incorrect response sequence for on_delete"
+                    )
 
                 reactor.callLater(0, all_done)
 
-        session = TestSession(types.ComponentConfig('realm1'))
-        self.session_factory.add(session, self.router, authrole='trusted')
+        session = TestSession(types.ComponentConfig("realm1"))
+        self.session_factory.add(session, self.router, authrole="trusted")
 
 
 class TestRouterSession(unittest.TestCase):
@@ -728,7 +846,7 @@ class TestRouterSession(unittest.TestCase):
         """
 
         router = mock.MagicMock()
-        router.new_correlation_id = lambda: 'fake correlation id'
+        router.new_correlation_id = lambda: "fake correlation id"
 
         class TestSession(RouterSession):
             def __init__(self, *args, **kw):
@@ -736,21 +854,25 @@ class TestRouterSession(unittest.TestCase):
                 # for this test, pretend we're connected (without
                 # going through sending a Hello etc.)
                 self._transport = mock.MagicMock()
-                self._transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
+                self._transport.get_channel_id = mock.MagicMock(
+                    return_value=b"deadbeef"
+                )
                 self._session_id = 1234
                 self._router = router  # normally done in Hello processing
                 self._service_session = mock.MagicMock()
 
         router_factory = mock.MagicMock()
         session = TestSession(router_factory)
-        goodbye = message.Goodbye('wamp.close.normal', 'hi there')
+        goodbye = message.Goodbye("wamp.close.normal", "hi there")
 
         self.assertFalse(session._goodbye_sent)
 
         # do the test; we should publish wamp.session.on_leave via the
         # service-session
         session.onMessage(goodbye)
-        publishes = [call for call in session._service_session.mock_calls if call[0] == 'publish']
+        publishes = [
+            call for call in session._service_session.mock_calls if call[0] == "publish"
+        ]
         self.assertEqual(1, len(publishes))
         call = publishes[0]
         self.assertEqual(call[0], "publish")
@@ -763,7 +885,7 @@ class TestRouterSession(unittest.TestCase):
         """
 
         router = mock.MagicMock()
-        router.new_correlation_id = lambda: 'fake correlation id'
+        router.new_correlation_id = lambda: "fake correlation id"
         utest = self
 
         class TestSession(RouterSession):
@@ -785,12 +907,12 @@ class TestRouterSession(unittest.TestCase):
                 utest.assertTrue(self._goodbye_sent)
                 # on the router, .detach() should have been called
                 utest.assertEqual(1, len(router.method_calls))
-                utest.assertEqual('detach', router.method_calls[0][0])
+                utest.assertEqual("detach", router.method_calls[0][0])
                 self.on_leave_called = True
 
         router_factory = mock.MagicMock()
         session = TestSession(router_factory)
-        goodbye = message.Goodbye('wamp.close.normal', 'hi there')
+        goodbye = message.Goodbye("wamp.close.normal", "hi there")
 
         self.assertFalse(session._goodbye_sent)
 

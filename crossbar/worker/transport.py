@@ -44,11 +44,17 @@ from crossbar._util import hltype
 from crossbar.common.twisted.web import Site
 from crossbar.common.twisted.endpoint import create_listening_port_from_config
 from crossbar.bridge.mqtt.wamp import WampMQTTServerFactory
-from crossbar.router.protocol import WampRawSocketServerFactory, WampWebSocketServerFactory
+from crossbar.router.protocol import (
+    WampRawSocketServerFactory,
+    WampWebSocketServerFactory,
+)
 from crossbar.router.unisocket import UniSocketServerFactory
 from crossbar.webservice.flashpolicy import FlashPolicyFactory
 
-from crossbar.worker.testee import WebSocketTesteeServerFactory, StreamTesteeServerFactory
+from crossbar.worker.testee import (
+    WebSocketTesteeServerFactory,
+    StreamTesteeServerFactory,
+)
 
 # monkey patch the Twisted Web server identification
 twisted.web.server.version = "Crossbar/{}".format(crossbar.__version__)
@@ -58,6 +64,7 @@ class RouterTransport(object):
     """
     A (listening) transport running on a router worker.
     """
+
     STATE_CREATED = 1
     STATE_STARTING = 2
     STATE_STARTED = 3
@@ -92,17 +99,22 @@ class RouterTransport(object):
         self._transport_id = transport_id
 
         try:
-            self._worker.personality.check_router_transport(self._worker.personality, config)
+            self._worker.personality.check_router_transport(
+                self._worker.personality, config
+            )
         except Exception as e:
             emsg = "Invalid router transport configuration: {}".format(e)
             self.log.error(emsg)
             raise ApplicationError("crossbar.error.invalid_configuration", emsg)
         else:
-            self.log.debug("Router transport parsed successfully (transport_id={transport_id}, transport_type={transport_type})",
-                           transport_id=transport_id, transport_type=config['type'])
+            self.log.debug(
+                "Router transport parsed successfully (transport_id={transport_id}, transport_type={transport_type})",
+                transport_id=transport_id,
+                transport_type=config["type"],
+            )
 
         self._config = config
-        self._type = config['type']
+        self._type = config["type"]
         self._cbdir = self._worker.config.extra.cbdir
         self._templates = self._worker.templates()
         self._created_at = datetime.utcnow()
@@ -116,12 +128,14 @@ class RouterTransport(object):
 
     def marshal(self):
         return {
-            'id': self._transport_id,
-            'type': self._type,
-            'config': self._config,
-            'created_at': utcstr(self._created_at),
-            'listening_since': utcstr(self._listening_since) if self._listening_since else None,
-            'state': self._state,
+            "id": self._transport_id,
+            "type": self._type,
+            "config": self._config,
+            "created_at": utcstr(self._created_at),
+            "listening_since": utcstr(self._listening_since)
+            if self._listening_since
+            else None,
+            "state": self._state,
         }
 
     @property
@@ -213,18 +227,20 @@ class RouterTransport(object):
         :return:
         """
         if self._state != RouterTransport.STATE_CREATED:
-            raise Exception('invalid state')
+            raise Exception("invalid state")
 
         # note that we are starting ..
         self._state = RouterTransport.STATE_STARTING
 
         # create transport factory
-        self._transport_factory, self._root_webservice = yield self._create_factory(start_children, ignore)
+        self._transport_factory, self._root_webservice = yield self._create_factory(
+            start_children, ignore
+        )
 
         # create transport endpoint / listening port from transport factory
         #
         port = yield create_listening_port_from_config(
-            self._config['endpoint'],
+            self._config["endpoint"],
             self._cbdir,
             self._transport_factory,
             self._worker._reactor,
@@ -254,90 +270,119 @@ class RouterTransport(object):
 
         # standalone WAMP-RawSocket transport
         #
-        if self._config['type'] == 'rawsocket':
-            transport_factory = WampRawSocketServerFactory(self._worker.router_session_factory, self._config)
+        if self._config["type"] == "rawsocket":
+            transport_factory = WampRawSocketServerFactory(
+                self._worker.router_session_factory, self._config
+            )
             transport_factory.noisy = False
 
         # standalone WAMP-WebSocket transport
         #
-        elif self._config['type'] == 'websocket':
-            assert (self._templates)
-            transport_factory = WampWebSocketServerFactory(self._worker.router_session_factory, self._cbdir, self._config,
-                                                           self._templates)
+        elif self._config["type"] == "websocket":
+            assert self._templates
+            transport_factory = WampWebSocketServerFactory(
+                self._worker.router_session_factory,
+                self._cbdir,
+                self._config,
+                self._templates,
+            )
             transport_factory.noisy = False
 
         # Flash-policy file server pseudo transport
         #
-        elif self._config['type'] == 'flashpolicy':
-            transport_factory = FlashPolicyFactory(self._config.get('allowed_domain', None),
-                                                   self._config.get('allowed_ports', None))
+        elif self._config["type"] == "flashpolicy":
+            transport_factory = FlashPolicyFactory(
+                self._config.get("allowed_domain", None),
+                self._config.get("allowed_ports", None),
+            )
 
         # WebSocket testee pseudo transport
         #
-        elif self._config['type'] == 'websocket.testee':
-            assert (self._templates)
-            transport_factory = WebSocketTesteeServerFactory(self._config, self._templates)
+        elif self._config["type"] == "websocket.testee":
+            assert self._templates
+            transport_factory = WebSocketTesteeServerFactory(
+                self._config, self._templates
+            )
 
         # Stream testee pseudo transport
         #
-        elif self._config['type'] == 'stream.testee':
+        elif self._config["type"] == "stream.testee":
             transport_factory = StreamTesteeServerFactory()
 
         # MQTT legacy adapter transport
         #
-        elif self._config['type'] == 'mqtt':
+        elif self._config["type"] == "mqtt":
             transport_factory = WampMQTTServerFactory(
-                self._worker.router_session_factory, self._config, self._worker._reactor)
+                self._worker.router_session_factory, self._config, self._worker._reactor
+            )
             transport_factory.noisy = False
 
         # Twisted Web based transport
         #
-        elif self._config['type'] == 'web':
-            assert (self._templates)
-            transport_factory, root_webservice = yield maybeDeferred(self._create_web_factory, create_paths, ignore)
+        elif self._config["type"] == "web":
+            assert self._templates
+            transport_factory, root_webservice = yield maybeDeferred(
+                self._create_web_factory, create_paths, ignore
+            )
 
         # Universal transport
         #
-        elif self._config['type'] == 'universal':
-            if 'web' in self._config:
-                assert (self._templates)
-                web_factory, root_webservice = yield maybeDeferred(self._create_web_factory, create_paths, ignore)
+        elif self._config["type"] == "universal":
+            if "web" in self._config:
+                assert self._templates
+                web_factory, root_webservice = yield maybeDeferred(
+                    self._create_web_factory, create_paths, ignore
+                )
             else:
                 web_factory, root_webservice = None, None
 
-            if 'rawsocket' in self._config:
-                rawsocket_factory = WampRawSocketServerFactory(self._worker.router_session_factory, self._config['rawsocket'])
+            if "rawsocket" in self._config:
+                rawsocket_factory = WampRawSocketServerFactory(
+                    self._worker.router_session_factory, self._config["rawsocket"]
+                )
                 rawsocket_factory.noisy = False
             else:
                 rawsocket_factory = None
 
-            if 'mqtt' in self._config:
+            if "mqtt" in self._config:
                 mqtt_factory = WampMQTTServerFactory(
-                    self._worker.router_session_factory, self._config['mqtt'], self._worker._reactor)
+                    self._worker.router_session_factory,
+                    self._config["mqtt"],
+                    self._worker._reactor,
+                )
                 mqtt_factory.noisy = False
             else:
                 mqtt_factory = None
 
-            if 'websocket' in self._config:
-                assert (self._templates)
+            if "websocket" in self._config:
+                assert self._templates
                 websocket_factory_map = {}
-                for websocket_url_first_component, websocket_config in self._config['websocket'].items():
-                    websocket_transport_factory = WampWebSocketServerFactory(self._worker.router_session_factory, self._cbdir,
-                                                                             websocket_config, self._templates)
+                for websocket_url_first_component, websocket_config in self._config[
+                    "websocket"
+                ].items():
+                    websocket_transport_factory = WampWebSocketServerFactory(
+                        self._worker.router_session_factory,
+                        self._cbdir,
+                        websocket_config,
+                        self._templates,
+                    )
                     websocket_transport_factory.noisy = False
-                    websocket_factory_map[websocket_url_first_component] = websocket_transport_factory
-                    self.log.debug('hooked up websocket factory on request URI {request_uri}',
-                                   request_uri=websocket_url_first_component)
+                    websocket_factory_map[
+                        websocket_url_first_component
+                    ] = websocket_transport_factory
+                    self.log.debug(
+                        "hooked up websocket factory on request URI {request_uri}",
+                        request_uri=websocket_url_first_component,
+                    )
             else:
                 websocket_factory_map = None
 
-            transport_factory = UniSocketServerFactory(web_factory,
-                                                       websocket_factory_map,
-                                                       rawsocket_factory,
-                                                       mqtt_factory)
+            transport_factory = UniSocketServerFactory(
+                web_factory, websocket_factory_map, rawsocket_factory, mqtt_factory
+            )
 
         # this is to allow subclasses to reuse this method
-        elif self._config['type'] in ignore:
+        elif self._config["type"] in ignore:
             pass
 
         # unknown transport type
@@ -354,7 +399,7 @@ class RouterTransport(object):
         :return:
         """
         if self._state != RouterTransport.STATE_STARTED:
-            raise Exception('invalid state')
+            raise Exception("invalid state")
 
         self._state = RouterTransport.STATE_STOPPING
 
@@ -387,31 +432,42 @@ class RouterWebTransport(RouterTransport):
     def _create_web_factory(self, create_paths=False, ignore=[]):
 
         # web transport options
-        options = self._config.get('options', {})
+        options = self._config.get("options", {})
 
         # create root web service
-        if '/' in self._config.get('paths', []):
-            root_config = self._config['paths']['/']
-        elif '/' in self._config.get('web', {}).get('paths', {}):
-            root_config = self._config['web']['paths']['/']
+        if "/" in self._config.get("paths", []):
+            root_config = self._config["paths"]["/"]
+        elif "/" in self._config.get("web", {}).get("paths", {}):
+            root_config = self._config["web"]["paths"]["/"]
         else:
-            root_config = {'type': 'path', 'paths': {}}
-        root_factory = self._worker.personality.WEB_SERVICE_FACTORIES[root_config['type']]
+            root_config = {"type": "path", "paths": {}}
+        root_factory = self._worker.personality.WEB_SERVICE_FACTORIES[
+            root_config["type"]
+        ]
         if not root_factory:
-            raise Exception('internal error: missing web service factory for type "{}"'.format(root_config['type']))
+            raise Exception(
+                'internal error: missing web service factory for type "{}"'.format(
+                    root_config["type"]
+                )
+            )
 
-        root_webservice = yield maybeDeferred(root_factory.create, self, '/', root_config)
-        self.log.info('Created "{root_type}" Web service on root path "/" of Web transport "{transport_id}"',
-                      root_type=root_config['type'], transport_id=self.id)
+        root_webservice = yield maybeDeferred(
+            root_factory.create, self, "/", root_config
+        )
+        self.log.info(
+            'Created "{root_type}" Web service on root path "/" of Web transport "{transport_id}"',
+            root_type=root_config["type"],
+            transport_id=self.id,
+        )
 
         # create the actual transport factory
         transport_factory = Site(
             root_webservice._resource,
-            client_timeout=options.get('client_timeout', None),
-            access_log=options.get('access_log', False),
-            display_tracebacks=options.get('display_tracebacks', False),
-            hsts=options.get('hsts', False),
-            hsts_max_age=int(options.get('hsts_max_age', 31536000))
+            client_timeout=options.get("client_timeout", None),
+            access_log=options.get("access_log", False),
+            display_tracebacks=options.get("display_tracebacks", False),
+            hsts=options.get("hsts", False),
+            hsts_max_age=int(options.get("hsts_max_age", 31536000)),
         )
 
         returnValue((transport_factory, root_webservice))
@@ -426,15 +482,20 @@ def create_router_transport(worker, transport_id, config):
     :param config:
     :return:
     """
-    worker.log.info('Creating router transport for "{transport_id}" ..',
-                    transport_id=transport_id)
+    worker.log.info(
+        'Creating router transport for "{transport_id}" ..', transport_id=transport_id
+    )
 
-    if config['type'] == 'web' or (config['type'] == 'universal' and config.get('web', {})):
+    if config["type"] == "web" or (
+        config["type"] == "universal" and config.get("web", {})
+    ):
         transport = RouterWebTransport(worker, transport_id, config)
     else:
         transport = RouterTransport(worker, transport_id, config)
 
-    worker.log.info('Router transport created for "{transport_id}" [transport_class={transport_class}]',
-                    transport_id=transport_id,
-                    transport_class=hltype(transport.__class__))
+    worker.log.info(
+        'Router transport created for "{transport_id}" [transport_class={transport_class}]',
+        transport_id=transport_id,
+        transport_class=hltype(transport.__class__),
+    )
     return transport

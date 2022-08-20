@@ -1,4 +1,3 @@
-
 from os import environ
 import datetime
 import os
@@ -21,22 +20,21 @@ class ClientSession(ApplicationSession):
             return now.strftime("%Y-%m-%dT%H:%M:%SZ")
 
         try:
-            yield self.register(utcnow, u'com.timeservice.now')
+            yield self.register(utcnow, "com.timeservice.now")
         except Exception as e:
             print("failed to register procedure: {}".format(e))
         else:
             print("procedure registered")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import six
-    url = os.environ.get('CBURL', u'ws://localhost:8080/ws')
-    realm = os.environ.get('CBREALM', u'realm1')
+
+    url = os.environ.get("CBURL", "ws://localhost:8080/ws")
+    realm = os.environ.get("CBREALM", "realm1")
 
     # any extra info we want to forward to our ClientSession (in self.config.extra)
-    extra = {
-        u'foobar': u'A custom value'
-    }
- 
+    extra = {"foobar": "A custom value"}
+
     runner = ApplicationRunner(url=url, realm=realm, extra=extra)
     runner.run(ClientSession, auto_reconnect=True)

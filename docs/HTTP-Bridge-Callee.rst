@@ -77,7 +77,7 @@ The callee is configured through the ``extra`` dictionary:
 +-----------+--------------------------------------------------------------------------------------------+
 | baseurl   |  The base URL that the callee will use. All calls will work downward from this URL.        |
 |           |  If you wish to call any URL, set it as an empty string "".                                |
-|           |  This URL must contain the protocol (e.g. "https://") (required)                           |                                                           
+|           |  This URL must contain the protocol (e.g. "https://") (required)                           |
 +-----------+--------------------------------------------------------------------------------------------+
 
 When making calls to the registered WAMP procedure, you can use the following keyword arguments:

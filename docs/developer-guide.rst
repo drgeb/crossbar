@@ -2,7 +2,7 @@
 
 .. _developer-guide:
 
-Developer Guide 
+Developer Guide
 ===============
 
 Usage
@@ -28,7 +28,3 @@ Specific Usages
 
 Specific Languages
 ------------------
-
-
-
-

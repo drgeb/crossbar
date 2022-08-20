@@ -37,7 +37,10 @@ from twisted import internet
 
 from autobahn.twisted import websocket
 from autobahn.twisted import rawsocket
-from autobahn.websocket.compress import PerMessageDeflateOffer, PerMessageDeflateOfferAccept
+from autobahn.websocket.compress import (
+    PerMessageDeflateOffer,
+    PerMessageDeflateOfferAccept,
+)
 
 # from autobahn.websocket.types import ConnectionAccept
 from autobahn.websocket.types import ConnectionDeny
@@ -51,14 +54,14 @@ from crossbar.common.twisted.endpoint import create_connecting_endpoint_from_con
 log = make_logger()
 
 __all__ = (
-    'WampWebSocketServerFactory',
-    'WampRawSocketServerFactory',
-    'WampWebSocketServerProtocol',
-    'WampRawSocketServerProtocol',
-    'WampWebSocketClientFactory',
-    'WampRawSocketClientFactory',
-    'WampWebSocketClientProtocol',
-    'WampRawSocketClientProtocol',
+    "WampWebSocketServerFactory",
+    "WampRawSocketServerFactory",
+    "WampWebSocketServerProtocol",
+    "WampRawSocketServerProtocol",
+    "WampWebSocketClientFactory",
+    "WampRawSocketClientFactory",
+    "WampWebSocketClientProtocol",
+    "WampRawSocketClientProtocol",
 )
 
 
@@ -93,50 +96,59 @@ def set_websocket_options(factory, options):
     #
     openHandshakeTimeout = float(c.get("open_handshake_timeout", 0))
     if openHandshakeTimeout:
-        openHandshakeTimeout = openHandshakeTimeout / 1000.
+        openHandshakeTimeout = openHandshakeTimeout / 1000.0
 
     closeHandshakeTimeout = float(c.get("close_handshake_timeout", 0))
     if closeHandshakeTimeout:
-        closeHandshakeTimeout = closeHandshakeTimeout / 1000.
+        closeHandshakeTimeout = closeHandshakeTimeout / 1000.0
 
     autoPingInterval = None
     if "auto_ping_interval" in c:
-        autoPingInterval = float(c["auto_ping_interval"]) / 1000.
+        autoPingInterval = float(c["auto_ping_interval"]) / 1000.0
 
     autoPingTimeout = None
     if "auto_ping_timeout" in c:
-        autoPingTimeout = float(c["auto_ping_timeout"]) / 1000.
+        autoPingTimeout = float(c["auto_ping_timeout"]) / 1000.0
 
     # WebSocket compression
     #
     per_msg_compression = lambda _: None  # noqa
-    if 'compression' in c:
+    if "compression" in c:
 
         # permessage-deflate
         #
-        if 'deflate' in c['compression']:
+        if "deflate" in c["compression"]:
 
             log.debug("enabling WebSocket compression (permessage-deflate)")
 
-            params = c['compression']['deflate']
+            params = c["compression"]["deflate"]
 
-            request_no_context_takeover = params.get('request_no_context_takeover', False)
-            request_max_window_bits = params.get('request_max_window_bits', 0)
-            no_context_takeover = params.get('no_context_takeover', None)
-            window_bits = params.get('max_window_bits', None)
-            mem_level = params.get('memory_level', None)
+            request_no_context_takeover = params.get(
+                "request_no_context_takeover", False
+            )
+            request_max_window_bits = params.get("request_max_window_bits", 0)
+            no_context_takeover = params.get("no_context_takeover", None)
+            window_bits = params.get("max_window_bits", None)
+            mem_level = params.get("memory_level", None)
 
             def accept(offers):
                 for offer in offers:
                     if isinstance(offer, PerMessageDeflateOffer):
-                        if (request_max_window_bits == 0 or offer.accept_max_window_bits) and \
-                           (not request_no_context_takeover or offer.accept_no_context_takeover):
-                            return PerMessageDeflateOfferAccept(offer,
-                                                                request_max_window_bits=request_max_window_bits,
-                                                                request_no_context_takeover=request_no_context_takeover,
-                                                                no_context_takeover=no_context_takeover,
-                                                                window_bits=window_bits,
-                                                                mem_level=mem_level)
+                        if (
+                            request_max_window_bits == 0 or offer.accept_max_window_bits
+                        ) and (
+                            not request_no_context_takeover
+                            or offer.accept_no_context_takeover
+                        ):
+                            return PerMessageDeflateOfferAccept(
+                                offer,
+                                request_max_window_bits=request_max_window_bits,
+                                request_no_context_takeover=request_no_context_takeover,
+                                no_context_takeover=no_context_takeover,
+                                window_bits=window_bits,
+                                mem_level=mem_level,
+                            )
+
             per_msg_compression = accept
 
     if factory.isServer:
@@ -192,6 +204,7 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
     """
     Crossbar.io WAMP-over-WebSocket server protocol.
     """
+
     log = make_logger()
 
     def __init__(self):
@@ -222,7 +235,9 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
 
         # handle WebSocket opening handshake
         #
-        protocol, headers = websocket.WampWebSocketServerProtocol.onConnect(self, request)
+        protocol, headers = websocket.WampWebSocketServerProtocol.onConnect(
+            self, request
+        )
 
         try:
 
@@ -249,10 +264,14 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                 # if no cookie is set, create a new one ..
                 if self._cbtid is None:
 
-                    self._cbtid, headers['Set-Cookie'] = self.factory._cookiestore.create()
+                    (
+                        self._cbtid,
+                        headers["Set-Cookie"],
+                    ) = self.factory._cookiestore.create()
 
-                    self.log.debug("Setting new cookie: {cookie}",
-                                   cookie=headers['Set-Cookie'])
+                    self.log.debug(
+                        "Setting new cookie: {cookie}", cookie=headers["Set-Cookie"]
+                    )
                 else:
                     self.log.debug("Cookie already set")
 
@@ -260,53 +279,70 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                 # associated with the same cookie
                 self.factory._cookiestore.addProto(self._cbtid, self)
 
-                self.log.debug("Cookie tracking enabled on WebSocket connection {ws}", ws=self)
+                self.log.debug(
+                    "Cookie tracking enabled on WebSocket connection {ws}", ws=self
+                )
 
                 # if cookie-based authentication is enabled, set auth info from cookie store
                 #
-                if 'auth' in self.factory._config and 'cookie' in self.factory._config['auth']:
+                if (
+                    "auth" in self.factory._config
+                    and "cookie" in self.factory._config["auth"]
+                ):
 
-                    self._authid, self._authrole, self._authmethod, self._authrealm, self._authextra = self.factory._cookiestore.getAuth(self._cbtid)
+                    (
+                        self._authid,
+                        self._authrole,
+                        self._authmethod,
+                        self._authrealm,
+                        self._authextra,
+                    ) = self.factory._cookiestore.getAuth(self._cbtid)
 
                     if self._authid:
                         # there is a cookie set, and the cookie was previously successfully authenticated,
                         # so immediately authenticate the client using that information
-                        self._authprovider = 'cookie'
-                        self.log.debug("Authenticated client via cookie {cookiename}={cbtid} as authid={authid}, authrole={authrole}, authmethod={authmethod}, authrealm={authrealm}",
-                                       cookiename=self.factory._cookiestore._cookie_id_field, cbtid=self._cbtid, authid=self._authid, authrole=self._authrole, authmethod=self._authmethod, authrealm=self._authrealm)
+                        self._authprovider = "cookie"
+                        self.log.debug(
+                            "Authenticated client via cookie {cookiename}={cbtid} as authid={authid}, authrole={authrole}, authmethod={authmethod}, authrealm={authrealm}",
+                            cookiename=self.factory._cookiestore._cookie_id_field,
+                            cbtid=self._cbtid,
+                            authid=self._authid,
+                            authrole=self._authrole,
+                            authmethod=self._authmethod,
+                            authrealm=self._authrealm,
+                        )
                     else:
                         # there is a cookie set, but the cookie wasn't authenticated yet using a different auth method
-                        self.log.debug("Cookie-based authentication enabled, but cookie isn't authenticated yet")
+                        self.log.debug(
+                            "Cookie-based authentication enabled, but cookie isn't authenticated yet"
+                        )
                 else:
                     self.log.debug("Cookie-based authentication disabled")
             else:
-                self.log.debug("Cookie tracking disabled on WebSocket connection {ws}", ws=self)
+                self.log.debug(
+                    "Cookie tracking disabled on WebSocket connection {ws}", ws=self
+                )
 
             # remember transport level info for later forwarding in
             # WAMP meta event "wamp.session.on_join"
             #
             self._transport_info = {
-                'type': 'websocket',
-                'protocol': protocol,
-                'peer': self.peer,
-
+                "type": "websocket",
+                "protocol": protocol,
+                "peer": self.peer,
                 # all HTTP headers as received by the WebSocket client
-                'http_headers_received': request.headers,
-
+                "http_headers_received": request.headers,
                 # only customer user headers (such as cookie)
-                'http_headers_sent': headers,
-
+                "http_headers_sent": headers,
                 # all HTTP response lines sent (verbatim, in order as sent)
                 # this will get filled in onOpen() from the HTTP response
                 # data that will be stored by AutobahnPython at the WebSocket
                 # protocol level (WebSocketServerProtocol)
                 # 'http_response_lines': None,
-
                 # WebSocket extensions in use .. will be filled in onOpen() - see below
-                'websocket_extensions_in_use': None,
-
+                "websocket_extensions_in_use": None,
                 # Crossbar.io tracking ID (for cookie tracking)
-                'cbtid': self._cbtid
+                "cbtid": self._cbtid,
             }
 
             # accept the WebSocket connection, speaking subprotocol `protocol`
@@ -321,14 +357,16 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
         if False:
             # this is little bit silly, we parse the complete response data into lines again
             http_response_lines = []
-            for line in self.http_response_data.split('\r\n'):
+            for line in self.http_response_data.split("\r\n"):
                 line = line.strip()
                 if line:
                     http_response_lines.append(line)
-            self._transport_info['http_response_lines'] = http_response_lines
+            self._transport_info["http_response_lines"] = http_response_lines
 
         # note the WebSocket extensions negotiated
-        self._transport_info['websocket_extensions_in_use'] = [e.__json__() for e in self.websocket_extensions_in_use]
+        self._transport_info["websocket_extensions_in_use"] = [
+            e.__json__() for e in self.websocket_extensions_in_use
+        ]
 
         return super(WampWebSocketServerProtocol, self).onOpen()
 
@@ -338,15 +376,21 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
         upgrade to WebSocket header (and option serverStatus is True).
         """
         try:
-            page = self.factory._templates.get_template('cb_ws_status.html')
-            self.sendHtml(page.render(redirectUrl=redirectUrl,
-                                      redirectAfter=redirectAfter,
-                                      cbVersion=crossbar.__version__,
-                                      wsUri=self.factory.url,
-                                      peer=self.peer,
-                                      workerPid=os.getpid()))
+            page = self.factory._templates.get_template("cb_ws_status.html")
+            self.sendHtml(
+                page.render(
+                    redirectUrl=redirectUrl,
+                    redirectAfter=redirectAfter,
+                    cbVersion=crossbar.__version__,
+                    wsUri=self.factory.url,
+                    peer=self.peer,
+                    workerPid=os.getpid(),
+                )
+            )
         except Exception:
-            self.log.failure("Error rendering WebSocket status page template: {log_failure.value}")
+            self.log.failure(
+                "Error rendering WebSocket status page template: {log_failure.value}"
+            )
 
     def onClose(self, wasClean, code, reason):
         super(WampWebSocketServerProtocol, self).onClose(wasClean, code, reason)
@@ -382,13 +426,15 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
         :param templates:
         :type templates:
         """
-        self.debug_traffic = config.get('debug_traffic', False)
+        self.debug_traffic = config.get("debug_traffic", False)
 
-        options = config.get('options', {})
+        options = config.get("options", {})
 
         # announce Crossbar.io server version
         #
-        self.showServerVersion = options.get('show_server_version', self.showServerVersion)
+        self.showServerVersion = options.get(
+            "show_server_version", self.showServerVersion
+        )
         if self.showServerVersion:
             server = "Crossbar/{}".format(crossbar.__version__)
         else:
@@ -397,84 +443,95 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
 
         # external (public) listening port (eg when running behind a reverse proxy)
         #
-        externalPort = options.get('external_port', None)
+        externalPort = options.get("external_port", None)
 
         # explicit list of WAMP serializers
         #
-        if 'serializers' in config:
+        if "serializers" in config:
             serializers = []
-            sers = set(config['serializers'])
+            sers = set(config["serializers"])
 
-            if 'flatbuffers' in sers:
+            if "flatbuffers" in sers:
                 # try FlatBuffers WAMP serializer
                 try:
                     from autobahn.wamp.serializer import FlatBuffersSerializer
+
                     serializers.append(FlatBuffersSerializer(batched=True))
                     serializers.append(FlatBuffersSerializer())
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-FlatBuffers serializer")
                 else:
-                    sers.discard('flatbuffers')
+                    sers.discard("flatbuffers")
 
-            if 'cbor' in sers:
+            if "cbor" in sers:
                 # try CBOR WAMP serializer
                 try:
                     from autobahn.wamp.serializer import CBORSerializer
+
                     serializers.append(CBORSerializer(batched=True))
                     serializers.append(CBORSerializer())
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-CBOR serializer")
                 else:
-                    sers.discard('cbor')
+                    sers.discard("cbor")
 
-            if 'msgpack' in sers:
+            if "msgpack" in sers:
                 # try MsgPack WAMP serializer
                 try:
                     from autobahn.wamp.serializer import MsgPackSerializer
+
                     serializers.append(MsgPackSerializer(batched=True))
                     serializers.append(MsgPackSerializer())
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-MsgPack serializer")
                 else:
-                    sers.discard('msgpack')
+                    sers.discard("msgpack")
 
-            if 'ubjson' in sers:
+            if "ubjson" in sers:
                 # try UBJSON WAMP serializer
                 try:
                     from autobahn.wamp.serializer import UBJSONSerializer
+
                     serializers.append(UBJSONSerializer(batched=True))
                     serializers.append(UBJSONSerializer())
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-UBJSON serializer")
                 else:
-                    sers.discard('ubjson')
+                    sers.discard("ubjson")
 
-            if 'json' in sers:
+            if "json" in sers:
                 # try JSON WAMP serializer
                 try:
                     from autobahn.wamp.serializer import JsonSerializer
+
                     serializers.append(JsonSerializer(batched=True))
                     serializers.append(JsonSerializer())
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-JSON serializer")
                 else:
-                    sers.discard('json')
+                    sers.discard("json")
 
             if not serializers:
                 raise Exception("no valid WAMP serializers specified")
 
             if len(sers) > 0:
-                raise Exception("invalid WAMP serializers specified (the following were unprocessed) {}".format(sers))
+                raise Exception(
+                    "invalid WAMP serializers specified (the following were unprocessed) {}".format(
+                        sers
+                    )
+                )
 
         else:
             serializers = None
 
-        websocket.WampWebSocketServerFactory.__init__(self,
-                                                      factory,
-                                                      serializers=serializers,
-                                                      url=config.get('url', None),
-                                                      server=server,
-                                                      externalPort=externalPort)
+        websocket.WampWebSocketServerFactory.__init__(
+            self,
+            factory,
+            serializers=serializers,
+            url=config.get("url", None),
+            server=server,
+            externalPort=externalPort,
+        )
 
         # Crossbar.io node directory
         self._cbdir = cbdir
@@ -486,19 +543,26 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
         self._templates = templates
 
         # cookie tracking
-        if 'cookie' in config:
-            cookie_store_type = config['cookie']['store']['type']
+        if "cookie" in config:
+            cookie_store_type = config["cookie"]["store"]["type"]
 
             # ephemeral, memory-backed cookie store
-            if cookie_store_type == 'memory':
-                self._cookiestore = CookieStoreMemoryBacked(config['cookie'])
+            if cookie_store_type == "memory":
+                self._cookiestore = CookieStoreMemoryBacked(config["cookie"])
                 self.log.info("Memory-backed cookie store active.")
 
             # persistent, file-backed cookie store
-            elif cookie_store_type == 'file':
-                cookie_store_file = os.path.abspath(os.path.join(self._cbdir, config['cookie']['store']['filename']))
-                self._cookiestore = CookieStoreFileBacked(cookie_store_file, config['cookie'])
-                self.log.info("File-backed cookie store active {cookie_store_file}", cookie_store_file=cookie_store_file)
+            elif cookie_store_type == "file":
+                cookie_store_file = os.path.abspath(
+                    os.path.join(self._cbdir, config["cookie"]["store"]["filename"])
+                )
+                self._cookiestore = CookieStoreFileBacked(
+                    cookie_store_file, config["cookie"]
+                )
+                self.log.info(
+                    "File-backed cookie store active {cookie_store_file}",
+                    cookie_store_file=cookie_store_file,
+                )
 
             else:
                 # should not arrive here as the config should have been checked before
@@ -529,6 +593,7 @@ class WampRawSocketServerProtocol(rawsocket.WampRawSocketServerProtocol):
     """
     Crossbar.io WAMP-over-RawSocket server protocol.
     """
+
     log = make_logger()
 
     def connectionMade(self):
@@ -551,13 +616,15 @@ class WampRawSocketServerProtocol(rawsocket.WampRawSocketServerProtocol):
         # WAMP meta event "wamp.session.on_join"
         #
         self._transport_info = {
-            'type': 'rawsocket',
-            'protocol': None,
-            'peer': self.peer
+            "type": "rawsocket",
+            "protocol": None,
+            "peer": self.peer,
         }
 
     def _on_handshake_complete(self):
-        self._transport_info['protocol'] = 'wamp.2.{}'.format(self._serializer.SERIALIZER_ID)
+        self._transport_info["protocol"] = "wamp.2.{}".format(
+            self._serializer.SERIALIZER_ID
+        )
         return rawsocket.WampRawSocketServerProtocol._on_handshake_complete(self)
 
 
@@ -578,79 +645,91 @@ class WampRawSocketServerFactory(rawsocket.WampRawSocketServerFactory):
 
         # explicit list of WAMP serializers
         #
-        if 'serializers' in config:
+        if "serializers" in config:
             serializers = []
-            sers = set(config['serializers'])
+            sers = set(config["serializers"])
 
-            if 'flatbuffers' in sers:
+            if "flatbuffers" in sers:
                 # try FlatBuffers WAMP serializer
                 try:
                     from autobahn.wamp.serializer import FlatBuffersSerializer
+
                     serializers.append(FlatBuffersSerializer())
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-FlatBuffers serializer")
                 else:
-                    sers.discard('flatbuffers')
+                    sers.discard("flatbuffers")
 
-            if 'cbor' in sers:
+            if "cbor" in sers:
                 # try CBOR WAMP serializer
                 try:
                     from autobahn.wamp.serializer import CBORSerializer
+
                     serializers.append(CBORSerializer())
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-CBOR serializer")
                 else:
-                    sers.discard('cbor')
+                    sers.discard("cbor")
 
-            if 'msgpack' in sers:
+            if "msgpack" in sers:
                 # try MsgPack WAMP serializer
                 try:
                     from autobahn.wamp.serializer import MsgPackSerializer
+
                     serializer = MsgPackSerializer()
                     serializer._serializer.ENABLE_V5 = False  # FIXME
                     serializers.append(serializer)
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-MsgPack serializer")
                 else:
-                    sers.discard('msgpack')
+                    sers.discard("msgpack")
 
-            if 'ubjson' in sers:
+            if "ubjson" in sers:
                 # try UBJSON WAMP serializer
                 try:
                     from autobahn.wamp.serializer import UBJSONSerializer
+
                     serializers.append(UBJSONSerializer(batched=True))
                     serializers.append(UBJSONSerializer())
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-UBJSON serializer")
                 else:
-                    sers.discard('ubjson')
+                    sers.discard("ubjson")
 
-            if 'json' in sers:
+            if "json" in sers:
                 # try JSON WAMP serializer
                 try:
                     from autobahn.wamp.serializer import JsonSerializer
+
                     serializers.append(JsonSerializer())
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-JSON serializer")
                 else:
-                    sers.discard('json')
+                    sers.discard("json")
 
             if not serializers:
                 raise Exception("no valid WAMP serializers specified")
 
             if len(sers) > 0:
-                raise Exception("invalid WAMP serializers specified (the following were unprocessed) {}".format(sers))
+                raise Exception(
+                    "invalid WAMP serializers specified (the following were unprocessed) {}".format(
+                        sers
+                    )
+                )
 
         else:
             serializers = None
 
         rawsocket.WampRawSocketServerFactory.__init__(self, factory, serializers)
 
-        if 'options' in config:
-            set_rawsocket_options(self, config['options'])
+        if "options" in config:
+            set_rawsocket_options(self, config["options"])
 
-        self.log.debug("RawSocket transport factory created using {serializers} serializers, max. message size {maxsize}",
-                       serializers=serializers, maxsize=self._max_message_size)
+        self.log.debug(
+            "RawSocket transport factory created using {serializers} serializers, max. message size {maxsize}",
+            serializers=serializers,
+            maxsize=self._max_message_size,
+        )
 
 
 class WampWebSocketClientProtocol(websocket.WampWebSocketClientProtocol):
@@ -695,29 +774,32 @@ class WampRawSocketClientFactory(rawsocket.WampRawSocketClientFactory):
 
         # WAMP serializer
         #
-        serid = config.get('serializer', 'json')
+        serid = config.get("serializer", "json")
 
-        if serid == 'json':
+        if serid == "json":
             # try JSON WAMP serializer
             try:
                 from autobahn.wamp.serializer import JsonSerializer
+
                 serializer = JsonSerializer()
             except ImportError:
                 raise Exception("could not load WAMP-JSON serializer")
 
-        elif serid == 'msgpack':
+        elif serid == "msgpack":
             # try MessagePack WAMP serializer
             try:
                 from autobahn.wamp.serializer import MsgPackSerializer
+
                 serializer = MsgPackSerializer()
                 serializer._serializer.ENABLE_V5 = False  # FIXME
             except ImportError:
                 raise Exception("could not load WAMP-MessagePack serializer")
 
-        elif serid == 'cbor':
+        elif serid == "cbor":
             # try CBOR WAMP serializer
             try:
                 from autobahn.wamp.serializer import CBORSerializer
+
                 serializer = CBORSerializer()
             except ImportError:
                 raise Exception("could not load WAMP-CBOR serializer")
@@ -733,8 +815,10 @@ class WebSocketReverseProxyClientProtocol(websocket.WebSocketClientProtocol):
     log = make_logger()
 
     def onConnect(self, response):
-        self.log.debug('WebSocketReverseProxyClientProtocol.onConnect(response={response})',
-                       response=response)
+        self.log.debug(
+            "WebSocketReverseProxyClientProtocol.onConnect(response={response})",
+            response=response,
+        )
         # response={"peer": "tcp4:127.0.0.1:9000", "headers": {"server": "AutobahnPython/17.10.1", "upgrade": "WebSocket", "connection": "Upgrade", "sec-websocket-accept": "tJFVMTSzGypbxQb8GW1dK/QLMZQ="}, "version": 18, "protocol": null, "extensions": []}
         try:
             # accept = ConnectionAccept(subprotocol=response.protocol, headers=None)
@@ -745,18 +829,30 @@ class WebSocketReverseProxyClientProtocol(websocket.WebSocketClientProtocol):
             self.log.failure()
 
     def onOpen(self):
-        self.log.debug('WebSocketReverseProxyClientProtocol.onOpen()')
+        self.log.debug("WebSocketReverseProxyClientProtocol.onOpen()")
         self.factory.frontend_protocol.onOpen()
 
     def onMessage(self, payload, isBinary):
-        self.log.debug('WebSocketReverseProxyClientProtocol.onMessage(payload={payload}, isBinary={isBinary})',
-                       payload='{}..'.format((binascii.b2a_hex(payload).decode() if isBinary else payload.decode('utf8'))[:16]),
-                       isBinary=isBinary)
+        self.log.debug(
+            "WebSocketReverseProxyClientProtocol.onMessage(payload={payload}, isBinary={isBinary})",
+            payload="{}..".format(
+                (
+                    binascii.b2a_hex(payload).decode()
+                    if isBinary
+                    else payload.decode("utf8")
+                )[:16]
+            ),
+            isBinary=isBinary,
+        )
         self.factory.frontend_protocol.sendMessage(payload, isBinary)
 
     def onClose(self, wasClean, code, reason):
-        self.log.debug('WebSocketReverseProxyClientProtocol.onClose(wasClean={wasClean}, code={code}, reason={reason})',
-                       wasClean=wasClean, code=code, reason=reason)
+        self.log.debug(
+            "WebSocketReverseProxyClientProtocol.onClose(wasClean={wasClean}, code={code}, reason={reason})",
+            wasClean=wasClean,
+            code=code,
+            reason=reason,
+        )
         code = 1000
         self.factory.frontend_protocol.sendClose(code, reason)
 
@@ -768,10 +864,10 @@ class WebSocketReverseProxyClientFactory(websocket.WebSocketClientFactory):
     protocol = WebSocketReverseProxyClientProtocol
 
     def __init__(self, *args, **kwargs):
-        self.frontend_protocol = kwargs.pop('frontend_protocol', None)
-        assert(self.frontend_protocol is not None)
+        self.frontend_protocol = kwargs.pop("frontend_protocol", None)
+        assert self.frontend_protocol is not None
 
-        frontend_request = kwargs.pop('frontend_request', None)
+        frontend_request = kwargs.pop("frontend_request", None)
         if frontend_request:
             protocols = frontend_request.protocols
             # headers = frontend_request.headers
@@ -779,11 +875,13 @@ class WebSocketReverseProxyClientFactory(websocket.WebSocketClientFactory):
             protocols = None
             # headers = None
 
-        websocket.WebSocketClientFactory.__init__(self, *args, protocols=protocols, **kwargs)
+        websocket.WebSocketClientFactory.__init__(
+            self, *args, protocols=protocols, **kwargs
+        )
 
         # set WebSocket options
         self.backend_config = self.frontend_protocol.backend_config
-        set_websocket_options(self, self.backend_config.get('options', {}))
+        set_websocket_options(self, self.backend_config.get("options", {}))
 
 
 class WebSocketReverseProxyServerProtocol(websocket.WebSocketServerProtocol):
@@ -805,23 +903,27 @@ class WebSocketReverseProxyServerProtocol(websocket.WebSocketServerProtocol):
         Incoming (frontend) WebSocket connection accepted. Forward connect to
         backend WebSocket server.
         """
-        self.log.debug('WebSocketReverseProxyServerProtocol.onConnect(request={request})', request=request)
+        self.log.debug(
+            "WebSocketReverseProxyServerProtocol.onConnect(request={request})",
+            request=request,
+        )
 
-        self.backend_config = self.factory.path_config['backend']
+        self.backend_config = self.factory.path_config["backend"]
 
-        self.backend_factory = WebSocketReverseProxyClientFactory(frontend_protocol=self,
-                                                                  frontend_request=request,
-                                                                  url=self.backend_config.get('url', None))
+        self.backend_factory = WebSocketReverseProxyClientFactory(
+            frontend_protocol=self,
+            frontend_request=request,
+            url=self.backend_config.get("url", None),
+        )
         self.backend_factory.noisy = False
 
         self.backend_protocol = None
 
         # create and connect client endpoint
         #
-        endpoint = create_connecting_endpoint_from_config(self.backend_config['endpoint'],
-                                                          None,
-                                                          self.factory.reactor,
-                                                          self.log)
+        endpoint = create_connecting_endpoint_from_config(
+            self.backend_config["endpoint"], None, self.factory.reactor, self.log
+        )
 
         backend_on_connect = internet.defer.Deferred()
 
@@ -830,12 +932,17 @@ class WebSocketReverseProxyServerProtocol(websocket.WebSocketServerProtocol):
         d = endpoint.connect(self.backend_factory)
 
         def on_connect_success(proto):
-            self.log.debug('WebSocketReverseProxyServerProtocol.onConnect(..): connected')
+            self.log.debug(
+                "WebSocketReverseProxyServerProtocol.onConnect(..): connected"
+            )
             proto.backend_on_connect = backend_on_connect
             self.backend_protocol = proto
 
         def on_connect_error(err):
-            deny = ConnectionDeny(ConnectionDeny.SERVICE_UNAVAILABLE, 'WebSocket reverse proxy backend not reachable')
+            deny = ConnectionDeny(
+                ConnectionDeny.SERVICE_UNAVAILABLE,
+                "WebSocket reverse proxy backend not reachable",
+            )
             backend_on_connect.errback(deny)
 
         d.addCallbacks(on_connect_success, on_connect_error)
@@ -843,22 +950,30 @@ class WebSocketReverseProxyServerProtocol(websocket.WebSocketServerProtocol):
         return backend_on_connect
 
     def onOpen(self):
-        self.log.debug('WebSocketReverseProxyServerProtocol.onOpen()')
+        self.log.debug("WebSocketReverseProxyServerProtocol.onOpen()")
 
     def onMessage(self, payload, isBinary):
         if self.backend_protocol:
-            self.log.debug('WebSocketReverseProxyServerProtocol: forwarding WebSocket message from frontend connection to backend connection')
+            self.log.debug(
+                "WebSocketReverseProxyServerProtocol: forwarding WebSocket message from frontend connection to backend connection"
+            )
             self.backend_protocol.sendMessage(payload, isBinary)
         else:
-            self.log.warn('WebSocketReverseProxyServerProtocol: received WebSocket message on frontend connection while there is no backend connection! dropping WebSocket message')
+            self.log.warn(
+                "WebSocketReverseProxyServerProtocol: received WebSocket message on frontend connection while there is no backend connection! dropping WebSocket message"
+            )
 
     def onClose(self, wasClean, code, reason):
         if self.backend_protocol:
-            self.log.debug('WebSocketReverseProxyServerProtocol: forwarding close from frontend connection to backend connection')
+            self.log.debug(
+                "WebSocketReverseProxyServerProtocol: forwarding close from frontend connection to backend connection"
+            )
             code = 1000
             self.backend_protocol.sendClose(code, reason)
         else:
-            self.log.warn('WebSocketReverseProxyServerProtocol: received WebSocket close on frontend connection while there is no backend connection! dropping WebSocket close')
+            self.log.warn(
+                "WebSocketReverseProxyServerProtocol: received WebSocket close on frontend connection while there is no backend connection! dropping WebSocket close"
+            )
 
 
 class WebSocketReverseProxyServerFactory(websocket.WebSocketServerFactory):
@@ -886,27 +1001,29 @@ class WebSocketReverseProxyServerFactory(websocket.WebSocketServerFactory):
         self.reactor = reactor
         self.path_config = path_config
 
-        url = path_config.get('url', None)
+        url = path_config.get("url", None)
 
-        options = path_config.get('options', {})
+        options = path_config.get("options", {})
 
-        showServerVersion = options.get('show_server_version', True)
+        showServerVersion = options.get("show_server_version", True)
         if showServerVersion:
             server = "Crossbar/{}".format(crossbar.__version__)
         else:
             server = "Crossbar"
 
-        externalPort = options.get('external_port', None)
+        externalPort = options.get("external_port", None)
 
         protocols = None
         headers = None
 
-        websocket.WebSocketServerFactory.__init__(self,
-                                                  reactor=reactor,
-                                                  url=url,
-                                                  protocols=protocols,
-                                                  server=server,
-                                                  headers=headers,
-                                                  externalPort=externalPort)
+        websocket.WebSocketServerFactory.__init__(
+            self,
+            reactor=reactor,
+            url=url,
+            protocols=protocols,
+            server=server,
+            headers=headers,
+            externalPort=externalPort,
+        )
         # set WebSocket options
         set_websocket_options(self, options)

@@ -40,13 +40,14 @@ from txaio import make_logger
 
 try:
     import vmprof
+
     _HAS_VMPROF = True
 except ImportError:
     _HAS_VMPROF = False
 
 PROFILERS = {}
 
-__all__ = ('PROFILERS')
+__all__ = "PROFILERS"
 
 
 class Profiler(object):
@@ -85,17 +86,16 @@ class Profiler(object):
 
     def marshal(self):
         return {
-            'id': self._id,
-            'config': self._config,
-            'state': 'running' if self._state == Profiler.STATE_RUNNING else 'stopped',
-            'started': self._started,
+            "id": self._id,
+            "config": self._config,
+            "state": "running" if self._state == Profiler.STATE_RUNNING else "stopped",
+            "started": self._started,
         }
 
 
 if _HAS_VMPROF:
 
     class VMprof(Profiler):
-
         def __init__(self, id, config=None):
             Profiler.__init__(self, id, config)
 
@@ -112,8 +112,12 @@ if _HAS_VMPROF:
             if self._state != Profiler.STATE_STOPPED:
                 raise Exception("profile currently not stopped - cannot start")
 
-            self._profile_filename = os.path.join(self._profile_dir, "cb_vmprof_{}_{}.dat".format(os.getpid(), utcnow()))
-            profile_fd = os.open(self._profile_filename, os.O_RDWR | os.O_CREAT | os.O_TRUNC)
+            self._profile_filename = os.path.join(
+                self._profile_dir, "cb_vmprof_{}_{}.dat".format(os.getpid(), utcnow())
+            )
+            profile_fd = os.open(
+                self._profile_filename, os.O_RDWR | os.O_CREAT | os.O_TRUNC
+            )
 
             vmprof.enable(profile_fd, period=0.01)
 
@@ -126,7 +130,9 @@ if _HAS_VMPROF:
                 self.log.info("Converting profile file {fname}", fname=profile_filename)
 
                 try:
-                    stats = vmprof.read_profile(profile_filename, virtual_only=True, include_extra_info=True)
+                    stats = vmprof.read_profile(
+                        profile_filename, virtual_only=True, include_extra_info=True
+                    )
                 except Exception:
                     self.log.error(
                         "Fatal: could not read vmprof profile file '{fname}': {log_failure.value}",
@@ -142,44 +148,48 @@ if _HAS_VMPROF:
                 def process_node(parent, node, level):
                     parent_name = parent.name if parent else None
 
-                    perc = round(100. * float(node.count) / total, 1)
+                    perc = round(100.0 * float(node.count) / total, 1)
                     if parent and parent.count:
-                        perc_of_parent = round(100. * float(node.count) / float(parent.count), 1)
+                        perc_of_parent = round(
+                            100.0 * float(node.count) / float(parent.count), 1
+                        )
                     else:
-                        perc_of_parent = 100.
+                        perc_of_parent = 100.0
 
-                    parts = node.name.count(':')
+                    parts = node.name.count(":")
 
                     if parts == 3:
-                        block_type, funname, funline, filename = node.name.split(':')
+                        block_type, funname, funline, filename = node.name.split(":")
                         res.append(
                             {
-                                'type': 'py',
-                                'level': level,
-                                'parent': parent_name,
-                                'fun': funname,
-                                'filename': filename,
-                                'dirname': os.path.dirname(filename),
-                                'basename': os.path.basename(filename),
-                                'line': funline,
-                                'perc': perc,
-                                'perc_of_parent': perc_of_parent,
-                                'count': node.count,
-                                'parent_count': parent.count if parent else None,
-                            })
+                                "type": "py",
+                                "level": level,
+                                "parent": parent_name,
+                                "fun": funname,
+                                "filename": filename,
+                                "dirname": os.path.dirname(filename),
+                                "basename": os.path.basename(filename),
+                                "line": funline,
+                                "perc": perc,
+                                "perc_of_parent": perc_of_parent,
+                                "count": node.count,
+                                "parent_count": parent.count if parent else None,
+                            }
+                        )
                     elif parts == 1:
-                        block_type, funname = node.name.split(':')
+                        block_type, funname = node.name.split(":")
                         res.append(
                             {
-                                'type': 'jit',
-                                'level': level,
-                                'parent': parent_name,
-                                'fun': funname,
-                                'perc': perc,
-                                'perc_of_parent': perc_of_parent,
-                                'count': node.count,
-                                'parent_count': parent.count if parent else None,
-                            })
+                                "type": "jit",
+                                "level": level,
+                                "parent": parent_name,
+                                "fun": funname,
+                                "perc": perc,
+                                "perc_of_parent": perc_of_parent,
+                                "count": node.count,
+                                "parent_count": parent.count if parent else None,
+                            }
+                        )
                     else:
                         raise Exception("fail!")
 
@@ -189,13 +199,18 @@ if _HAS_VMPROF:
 
             def finish_profile():
                 vmprof.disable()
-                self.log.info("Profile created under {filename}", filename=self._profile_filename)
+                self.log.info(
+                    "Profile created under {filename}", filename=self._profile_filename
+                )
 
                 # now defer to thread conversion
                 d = deferToThread(convert_profile, self._profile_filename)
 
                 def on_profile_converted(res):
-                    self.log.info("Profile data with {count} log entries generated", count=len(res))
+                    self.log.info(
+                        "Profile data with {count} log entries generated",
+                        count=len(res),
+                    )
                     self._finished.callback(res)
 
                 def on_profile_conversaion_failed(err):
@@ -214,11 +229,16 @@ if _HAS_VMPROF:
 
                 d.addBoth(cleanup)
 
-            self.log.info("Starting profiling using {profiler} for {runtime} seconds.", profiler=self._id, runtime=runtime)
+            self.log.info(
+                "Starting profiling using {profiler} for {runtime} seconds.",
+                profiler=self._id,
+                runtime=runtime,
+            )
 
             from twisted.internet import reactor
+
             reactor.callLater(runtime, finish_profile)
 
             return self._profile_id, self._finished
 
-    PROFILERS['vmprof'] = VMprof('vmprof', config={'period': 0.01})
+    PROFILERS["vmprof"] = VMprof("vmprof", config={"period": 0.01})

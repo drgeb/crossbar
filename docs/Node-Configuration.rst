@@ -111,4 +111,3 @@ e.g. invalid attributes. It will NOT catch all possible configuration
 issues. E.g. if you configure 2 router transports listening on the
 *same* TCP port, this will not work, but the check won't raise an error.
 You will only get error feedback upon starting the node.
-

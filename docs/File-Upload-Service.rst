@@ -220,4 +220,3 @@ The example uses this configuration:
           }]
        }]
     }
-

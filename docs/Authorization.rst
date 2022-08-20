@@ -101,7 +101,7 @@ would be:
                          "register": false,
                          "subscribe": true,
                          "publish": true
-                      }                  
+                      }
                    }
                 ]
              }
@@ -125,7 +125,7 @@ Each permission rule, like
           "register": false,
           "subscribe": true,
           "publish": false
-       }   
+       }
     }
 
 is a dictionary an attribute having the URI as a string value, and at

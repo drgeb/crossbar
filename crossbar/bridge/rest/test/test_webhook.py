@@ -46,6 +46,7 @@ class WebhookTestCase(TestCase):
     """
     Unit tests for L{WebhookResource}.
     """
+
     @inlineCallbacks
     def test_basic(self):
         """
@@ -57,10 +58,12 @@ class WebhookTestCase(TestCase):
 
         with LogCapturer() as l:
             request = yield renderResource(
-                resource, b"/",
+                resource,
+                b"/",
                 method=b"POST",
                 headers={b"Content-Type": []},
-                body=b'{"foo": "has happened"}')
+                body=b'{"foo": "has happened"}',
+            )
 
         self.assertEqual(len(session._published_messages), 1)
         self.assertEqual(
@@ -68,11 +71,12 @@ class WebhookTestCase(TestCase):
                 "body": '{"foo": "has happened"}',
                 "headers": {
                     "Content-Type": [],
-                    'Date': ['Sun, 1 Jan 2013 15:21:01 GMT'],
-                    'Host': ['localhost:8000']
-                }
+                    "Date": ["Sun, 1 Jan 2013 15:21:01 GMT"],
+                    "Host": ["localhost:8000"],
+                },
             },
-            session._published_messages[0]["args"][0])
+            session._published_messages[0]["args"][0],
+        )
 
         self.assertEqual(request.code, 202)
         self.assertEqual(request.get_written_data(), b"OK")
@@ -96,21 +100,23 @@ class WebhookTestCase(TestCase):
         )
 
         request = yield renderResource(
-            resource, b"/",
+            resource,
+            b"/",
             method=b"POST",
             headers={b"Content-Type": []},
-            body=b'{"foo": "has happened"}')
+            body=b'{"foo": "has happened"}',
+        )
 
         self.assertEqual(len(session._published_messages), 0)
         self.assertEqual(request.code, 400)
-        received_json = json.loads(request.get_written_data().decode('utf8'))
+        received_json = json.loads(request.get_written_data().decode("utf8"))
         self.assertEqual(
             received_json,
             {
                 "error": "Malformed request to the REST bridge.",
                 "args": [],
-                "kwargs": {}
-            }
+                "kwargs": {},
+            },
         )
 
     @inlineCallbacks
@@ -128,21 +134,23 @@ class WebhookTestCase(TestCase):
         )
 
         request = yield renderResource(
-            resource, b"/",
+            resource,
+            b"/",
             method=b"POST",
             headers={b"Content-Type": []},
-            body=b'{"foo": "has happened"}')
+            body=b'{"foo": "has happened"}',
+        )
 
         self.assertEqual(len(session._published_messages), 0)
         self.assertEqual(request.code, 400)
-        received_json = json.loads(request.get_written_data().decode('utf8'))
+        received_json = json.loads(request.get_written_data().decode("utf8"))
         self.assertEqual(
             received_json,
             {
                 "error": "Malformed request to the REST bridge.",
                 "args": [],
                 "kwargs": {},
-            }
+            },
         )
 
     @inlineCallbacks
@@ -160,7 +168,8 @@ class WebhookTestCase(TestCase):
         )
 
         yield renderResource(
-            resource, b"/webhook",
+            resource,
+            b"/webhook",
             method=b"POST",
             headers={
                 b"Content-Type": [],
@@ -171,8 +180,8 @@ class WebhookTestCase(TestCase):
 
         self.assertEqual(len(session._published_messages), 1)
         msg = session._published_messages[0]
-        data = msg['args'][0]
+        data = msg["args"][0]
         self.assertEqual(
-            data['body'].encode('utf8'),
+            data["body"].encode("utf8"),
             github_request_data.strip(),
         )

@@ -75,7 +75,7 @@ functions that can be freely moved between the browser or NodeJS!
 -  `Getting started with NodeJS <Getting-started-with-NodeJS>`__
 -  `AutobahnJS <https://github.com/crossbario/autobahn-js>`__
 
- 
+
 Adding Chat to Web applications
 -------------------------------
 
@@ -97,7 +97,7 @@ big deal.
 -  `Crossbar.io Chat Demo Source
    Code <https://github.com/crossbario/crossbarexamples/tree/master/demos/chat>`__
 
- 
+
 Adding real-time to Web applications
 ------------------------------------
 

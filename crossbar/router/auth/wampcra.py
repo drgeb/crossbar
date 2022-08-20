@@ -36,7 +36,7 @@ from autobahn.wamp import types
 
 from crossbar.router.auth.pending import PendingAuth
 
-__all__ = ('PendingAuthWampCra',)
+__all__ = ("PendingAuthWampCra",)
 
 
 class PendingAuthWampCra(PendingAuth):
@@ -44,7 +44,7 @@ class PendingAuthWampCra(PendingAuth):
     Pending WAMP-CRA authentication.
     """
 
-    AUTHMETHOD = 'wampcra'
+    AUTHMETHOD = "wampcra"
 
     def __init__(self, session, config):
         PendingAuth.__init__(self, session, config)
@@ -57,35 +57,33 @@ class PendingAuthWampCra(PendingAuth):
         Returns: challenge, signature
         """
         challenge_obj = {
-            'authid': self._authid,
-            'authrole': self._authrole,
-            'authmethod': self._authmethod,
-            'authprovider': self._authprovider,
-            'session': self._session_details['session'],
-            'nonce': util.newid(64),
-            'timestamp': util.utcnow()
+            "authid": self._authid,
+            "authrole": self._authrole,
+            "authmethod": self._authmethod,
+            "authprovider": self._authprovider,
+            "session": self._session_details["session"],
+            "nonce": util.newid(64),
+            "timestamp": util.utcnow(),
         }
         challenge = json.dumps(challenge_obj, ensure_ascii=False)
 
         # Sometimes, if it doesn't have to be Unicode, PyPy won't make it
         # Unicode. Make it Unicode, even if it's just ASCII.
         if not isinstance(challenge, str):
-            challenge = challenge.decode('utf8')
+            challenge = challenge.decode("utf8")
 
-        secret = user['secret'].encode('utf8')
-        signature = auth.compute_wcs(secret, challenge.encode('utf8')).decode('ascii')
+        secret = user["secret"].encode("utf8")
+        signature = auth.compute_wcs(secret, challenge.encode("utf8")).decode("ascii")
 
         # extra data to send to client in CHALLENGE
-        extra = {
-            'challenge': challenge
-        }
+        extra = {"challenge": challenge}
 
         # when using salted passwords, provide the client with
         # the salt and then PBKDF2 parameters used
-        if 'salt' in user:
-            extra['salt'] = user['salt']
-            extra['iterations'] = user.get('iterations', 1000)
-            extra['keylen'] = user.get('keylen', 32)
+        if "salt" in user:
+            extra["salt"] = user["salt"]
+            extra["iterations"] = user.get("iterations", 1000)
+            extra["keylen"] = user.get("keylen", 32)
 
         return extra, signature
 
@@ -98,13 +96,13 @@ class PendingAuthWampCra(PendingAuth):
         self._authid = details.authid
 
         # use static principal database from configuration
-        if self._config['type'] == 'static':
+        if self._config["type"] == "static":
 
-            self._authprovider = 'static'
+            self._authprovider = "static"
 
-            if self._authid in self._config.get('users', {}):
+            if self._authid in self._config.get("users", {}):
 
-                principal = self._config['users'][self._authid]
+                principal = self._config["users"][self._authid]
 
                 error = self._assign_principal(principal)
                 if error:
@@ -116,21 +114,29 @@ class PendingAuthWampCra(PendingAuth):
 
                 return types.Challenge(self._authmethod, extra)
             else:
-                return types.Deny(message='no principal with authid "{}" exists'.format(details.authid))
+                return types.Deny(
+                    message='no principal with authid "{}" exists'.format(
+                        details.authid
+                    )
+                )
 
         # use configured procedure to dynamically get a ticket for the principal
-        elif self._config['type'] == 'dynamic':
+        elif self._config["type"] == "dynamic":
 
-            self._authprovider = 'dynamic'
+            self._authprovider = "dynamic"
 
             error = self._init_dynamic_authenticator()
             if error:
                 return error
 
-            self._session_details['authmethod'] = self._authmethod  # from AUTHMETHOD, via base
-            self._session_details['authextra'] = details.authextra
+            self._session_details[
+                "authmethod"
+            ] = self._authmethod  # from AUTHMETHOD, via base
+            self._session_details["authextra"] = details.authextra
 
-            d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
+            d = self._authenticator_session.call(
+                self._authenticator, realm, details.authid, self._session_details
+            )
 
             def on_authenticate_ok(principal):
                 error = self._assign_principal(principal)
@@ -149,7 +155,11 @@ class PendingAuthWampCra(PendingAuth):
 
         else:
             # should not arrive here, as config errors should be caught earlier
-            return types.Deny(message='invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type']))
+            return types.Deny(
+                message='invalid authentication configuration (authentication type "{}" is unknown)'.format(
+                    self._config["type"]
+                )
+            )
 
     def authenticate(self, signature):
 

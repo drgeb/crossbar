@@ -5,17 +5,16 @@ from autobahn.wamp import auth
 
 
 class BackendSession(ApplicationSession):
-
     def onConnect(self):
-        self.join(self.config.realm, authmethods=[u'wampcra'], authid=u'admin')
+        self.join(self.config.realm, authmethods=["wampcra"], authid="admin")
 
     def onChallenge(self, msg):
-        assert msg.method == u'wampcra'
+        assert msg.method == "wampcra"
         signature = auth.compute_wcs(
-            u"seekrit".encode('utf8'),
-            msg.extra['challenge'].encode('utf8'),
+            "seekrit".encode("utf8"),
+            msg.extra["challenge"].encode("utf8"),
         )
-        return signature.decode('ascii')
+        return signature.decode("ascii")
 
     @inlineCallbacks
     def onJoin(self, details):
@@ -26,10 +25,7 @@ class BackendSession(ApplicationSession):
             print("event received on {}: {}".format(topic, msg))
 
         # SUBSCRIBE to a few topics we are allowed to subscribe to.
-        for topic in [
-            'com.example.topic1',
-            'com.foobar.topic1',
-            'com.foobar.topic2']:
+        for topic in ["com.example.topic1", "com.foobar.topic1", "com.foobar.topic2"]:
 
             try:
                 sub = yield self.subscribe(onhello, topic)
@@ -49,7 +45,7 @@ class BackendSession(ApplicationSession):
             return x + y
 
         try:
-            reg = yield self.register(add2, 'com.example.add2')
+            reg = yield self.register(add2, "com.example.add2")
             print("procedure add2() registered")
         except Exception as e:
             print("could not register procedure: {}".format(e))

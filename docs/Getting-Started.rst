@@ -72,7 +72,7 @@ Although **Docker is not necessary to run Crossbar.io**, or to develop WAMP appl
 
 Basic Concept:
 ==============
-The Crossbar.io is a multi process architecture. A single instance of Crossbar.io is called Crossbar.io node. 
+The Crossbar.io is a multi process architecture. A single instance of Crossbar.io is called Crossbar.io node.
 When a Crossbar.io node starts, initially it starts a single process called **node controller**.
 
 .. image:: assets/crossbar-architecture.svg
@@ -84,7 +84,7 @@ Node Controller:
 ================
 The node controller is the master process of everything. The node controller reads the configuration file locally and starts multiple worker processes such as router, containers and guest workers.
 
-*  Routers are the core facilities responsible for routing WAMP messages. 
+*  Routers are the core facilities responsible for routing WAMP messages.
 *  Containers are Autobahn Python clients which runs natively as part of Crossbar.io.
 *  Guests are applications other than routers and containers ,e.g. a nodejs application etc.
 
@@ -98,7 +98,7 @@ Configuration:
         "version": 2,
        "controller": { },
        "workers": [
-             "-- configuration work is done here --"      
+             "-- configuration work is done here --"
        ]
     }
 
@@ -122,14 +122,14 @@ To start a router the following things needs to be defined.
 Realm
 -----
 A realm is equivalent to a namespace. Crossbar.io uses realms as domains for separation of routing and administration. The router needs to provide at least one realm for applications to communicate through. A realm can be optionally protected by authentication and authorization.
-The access control of the topics and procedures within a particular realm is defined by **roles**. 
+The access control of the topics and procedures within a particular realm is defined by **roles**.
 The roles define **permissions**  to allow,deny or authorize access to topics and procedures.
 
 .. note:: Every WAMP session between Crossbar.io and a Client is always attached to a specific Realm. It is not possible for a client connected in a particular realm to see clients of other realm.
 
 
 Roles
-^^^^^ 
+^^^^^
 Roles defines the **permissions** for WAMP clients of a given realm, to use an URI(topic or procedure). It is possible to define a common rule for all URIs and specific rules for some particular URIs. The rules allow or disallow action such as publish, subscribe, call and register.
 These rules can be defined by a static authorization or a dynamic authorization. In dynamic authorization, the router calls a component (Python client) and the component performs authorization.
 
@@ -240,7 +240,7 @@ The Crossbar configuration file is defined using a JSON or a YAML formatted file
 
 
 The configuration file contains a single router under worker section. The router contains one realm entry and a transport entry.
-The realm section is between line 9 - 35. 
+The realm section is between line 9 - 35.
 EXP
 
 The configuration entries are explained below in **Line no - Description** format.
@@ -252,7 +252,7 @@ The configuration entries are explained below in **Line no - Description** forma
 
 .. note:: The above permission setting should only be used for  development purpose and not for production
 
-* 35-63 - **transport** dictionary entry. 
+* 35-63 - **transport** dictionary entry.
 * 36-38 - defines the type **web**. It is a type of transport where it allows websocket, web services to use the same port. The Crossbar.io identifies the packet using its header.
 * 38-41 - it uses **tcp** and port number **8080** as its :doc:`transport endpoint <Transport-Endpoints>`
 * 49-61 - defines the web transport entry. each entry in the **path** defines a route to  HTML page.
@@ -322,7 +322,7 @@ The Javascript example code is available in the ``crossbar-examples/getting-star
 
 .. note:: The Javascript examples can be run directly from browser by clicking .html file.
 
-To start the application, just open the ``frontend.html`` file using the browser then it will start receiving events 
+To start the application, just open the ``frontend.html`` file using the browser then it will start receiving events
 
 As you can see in the source, inclusion of ``autobahn.min.js`` loads the Autobahn Javascript file to the browser, and the next line loads the ``frontend.js`` which contains our event receiving application. The label with id **"WAMPEvent"** is a placeholder where the text will get updated by the code in the frontend.js.
 
@@ -342,7 +342,7 @@ As you can see in the source, inclusion of ``autobahn.min.js`` loads the Autobah
 
 The **connection.open**  creates a new connection to the Crossbar.io using the give URL and realm. When a session is successfully created the **onopen** function is called back, where the **onevent1** function is subscribed to the topic **com.myapp.hello**.
 
-Each time an event arrives to the topic **com.myapp.hello**, the function ``onevent1`` is called, which updates the  label WAMPEvent to display in the browser 
+Each time an event arrives to the topic **com.myapp.hello**, the function ``onevent1`` is called, which updates the  label WAMPEvent to display in the browser
 ::
 
   session.subscribe('com.myapp.hello', onevent1);
@@ -386,10 +386,10 @@ The Callee client will implement the date procedure and register it to the topic
 
 RPC Date Callee
 ---------------
-We will be using Autobahn JavaScript based RPC Callee client. You can run this script in browser or as nodejs application,we will cover both the methods.The  example code is available in the ``crossbar-examples/getting-started/3.rpc/`` folder. 
+We will be using Autobahn JavaScript based RPC Callee client. You can run this script in browser or as nodejs application,we will cover both the methods.The  example code is available in the ``crossbar-examples/getting-started/3.rpc/`` folder.
 
 
-Browser 
+Browser
 ^^^^^^^
 
 To start the application, just open the ``rpc_callee.html`` file using the browser. The output gets printed in the JavaScript console. In order to view the console,right-click in the workspace of the browser and select Inspect and you can find the console tab.
@@ -397,13 +397,13 @@ To start the application, just open the ``rpc_callee.html`` file using the brows
 
 The script will register a procedure named **com.myapp.date**.
 
-NodeJS 
+NodeJS
 ^^^^^^
 
 ::
 
   docker run -v $PWD/3.rpc:/app -e CBURL="ws://crossbar:8080/ws" -e CBREALM="realm1" --link=crossbar --rm -it crossbario/autobahn-js
- 
+
 Source code
 ^^^^^^^^^^^
 ``3.rpc/rpc_callee.html``:
@@ -462,5 +462,5 @@ Further Materials
 =================
 * :doc:`Installation of Crossbar.io  <Installation>`.
 * :doc:`Basic concept of WAMP and Crossbar.io  <Basic-Concepts>`.
-* Creating Docker Images 
+* Creating Docker Images
 * Overview of WAMP Client libraries

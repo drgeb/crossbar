@@ -56,4 +56,3 @@ For components of ``type == "class"``, the following parameters must be provided
 +===========+=====================================================================================================+
 | classname | The (fully qualified) class name of a class that derives from ``ApplicationSession`` (**required**) |
 +-----------+-----------------------------------------------------------------------------------------------------+
-

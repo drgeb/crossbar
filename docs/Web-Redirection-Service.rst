@@ -7,7 +7,7 @@ Configuration
 -------------
 
 To configure a Web Redirection Service, attach a dictionary element to a
-path in your :doc:`Web transport <Web-Transport-and-Services>`: 
+path in your :doc:`Web transport <Web-Transport-and-Services>`:
 
 +--------+------------------------------------------------------------------------------+
 | option | description                                                                  |
@@ -75,4 +75,3 @@ You can also redirect *subpaths* on a **Web Transport**:
           }
        }
     }
-

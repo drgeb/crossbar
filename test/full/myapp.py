@@ -1,6 +1,7 @@
 from twisted.logger import Logger
 from autobahn.twisted.wamp import ApplicationSession
 
+
 class MySession(ApplicationSession):
 
     log = Logger()
@@ -11,4 +12,4 @@ class MySession(ApplicationSession):
 
     def onJoin(self, details):
         self.log.info("MySession.onJoin()")
-        #self.leave()
+        # self.leave()

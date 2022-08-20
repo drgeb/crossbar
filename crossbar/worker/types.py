@@ -63,12 +63,12 @@ class RouterComponent(object):
         """
         now = datetime.utcnow()
         return {
-            'id': self.id,
+            "id": self.id,
             # 'started' is used by container-components; keeping it
             # for consistency in the public API
-            'started': utcstr(self.created),
-            'uptime': (now - self.created).total_seconds(),
-            'config': self.config
+            "started": utcstr(self.created),
+            "uptime": (now - self.created).total_seconds(),
+            "config": self.config,
         }
 
 
@@ -114,19 +114,19 @@ class RouterRealm(object):
 
     def marshal(self):
         marshalled = {
-            'id': self.id,
-            'config': self.config,
-            'created': utcstr(self.created),
-            'roles': [self.roles[role].marshal() for role in self.roles if self.roles],
-            'has_router': self.router is not None,
-            'has_service_session': self.session is not None,
+            "id": self.id,
+            "config": self.config,
+            "created": utcstr(self.created),
+            "roles": [self.roles[role].marshal() for role in self.roles if self.roles],
+            "has_router": self.router is not None,
+            "has_service_session": self.session is not None,
         }
 
         rlinks = []
         for link_id in self.rlink_manager.keys():
             rlinks.append(self.rlink_manager[link_id].marshal())
 
-        marshalled['rlinks'] = rlinks
+        marshalled["rlinks"] = rlinks
 
         return marshalled
 
@@ -151,6 +151,6 @@ class RouterRealmRole(object):
 
     def marshal(self):
         return {
-            'id': self.id,
-            'config': self.config,
+            "id": self.id,
+            "config": self.config,
         }

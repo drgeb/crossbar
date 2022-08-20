@@ -73,4 +73,4 @@ Exclusion <Publisher-Exclusion>` .
 Next
 ====
 
-:doc:`Basic Subscriptions <Basic-Subscriptions>` 
+:doc:`Basic Subscriptions <Basic-Subscriptions>`

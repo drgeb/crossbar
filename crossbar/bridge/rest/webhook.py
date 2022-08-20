@@ -36,13 +36,14 @@ from autobahn.wamp.exception import ApplicationError
 from crossbar._compat import native_string
 from crossbar.bridge.rest.common import _CommonResource
 
-__all__ = ('WebhookResource',)
+__all__ = ("WebhookResource",)
 
 
 class WebhookResource(_CommonResource):
     """
     A HTTP WebHook to WAMP-Publisher bridge.
     """
+
     decode_as_json = False
 
     def _process(self, request, event):
@@ -53,15 +54,18 @@ class WebhookResource(_CommonResource):
         message = {}
         message["headers"] = {
             native_string(x): [native_string(z) for z in y]
-            for x, y in request.requestHeaders.getAllRawHeaders()}
+            for x, y in request.requestHeaders.getAllRawHeaders()
+        }
         message["body"] = event
 
         publish_options = PublishOptions(acknowledge=True)
 
         def _succ(result):
-            response_text = self._options.get("success_response", "OK").encode('utf8')
+            response_text = self._options.get("success_response", "OK").encode("utf8")
             return self._complete_request(
-                request, 202, response_text,
+                request,
+                202,
+                response_text,
                 reason="Successfully sent webhook from {ip} to {topic}",
                 topic=topic,
                 ip=request.getClientIP(),
@@ -69,11 +73,11 @@ class WebhookResource(_CommonResource):
             )
 
         def _err(result):
-            response_text = self._options.get("error_response", "NOT OK").encode('utf8')
+            response_text = self._options.get("error_response", "NOT OK").encode("utf8")
             error_message = str(result.value)
             authorization_problem = False
             if isinstance(result.value, ApplicationError):
-                error_message = '{}: {}'.format(
+                error_message = "{}: {}".format(
                     result.value.error,
                     result.value.args[0],
                 )
@@ -98,9 +102,9 @@ class WebhookResource(_CommonResource):
             request.write(response_text)
             request.finish()
 
-        d = self._session.publish(topic,
-                                  json.loads(json.dumps(message)),
-                                  options=publish_options)
+        d = self._session.publish(
+            topic, json.loads(json.dumps(message)), options=publish_options
+        )
         d.addCallback(_succ)
         d.addErrback(_err)
         return d

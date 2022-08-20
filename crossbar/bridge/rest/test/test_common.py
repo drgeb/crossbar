@@ -40,6 +40,7 @@ class IPWhitelistingTestCase(TestCase):
     """
     Unit tests for the IP address checking parts of L{_CommonResource}.
     """
+
     def test_allowed_IP(self):
         """
         The client having an allowed IP address allows the request.
@@ -47,10 +48,15 @@ class IPWhitelistingTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({"require_ip": ["127.0.0.1"]}, session)
 
-        request = self.successResultOf(renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/json"]},
-            body=publishBody))
+        request = self.successResultOf(
+            renderResource(
+                resource,
+                b"/",
+                method=b"POST",
+                headers={b"Content-Type": [b"application/json"]},
+                body=publishBody,
+            )
+        )
 
         self.assertEqual(request.code, 200)
 
@@ -61,10 +67,15 @@ class IPWhitelistingTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({"require_ip": ["127.0.0.0/8"]}, session)
 
-        request = self.successResultOf(renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/json"]},
-            body=publishBody))
+        request = self.successResultOf(
+            renderResource(
+                resource,
+                b"/",
+                method=b"POST",
+                headers={b"Content-Type": [b"application/json"]},
+                body=publishBody,
+            )
+        )
 
         self.assertEqual(request.code, 200)
 
@@ -73,22 +84,29 @@ class IPWhitelistingTestCase(TestCase):
         The client having an IP not in allowed address range denies the request.
         """
         session = MockPublisherSession(self)
-        resource = PublisherResource({"require_ip": ["192.168.0.0/16", "10.0.0.0/8"]}, session)
+        resource = PublisherResource(
+            {"require_ip": ["192.168.0.0/16", "10.0.0.0/8"]}, session
+        )
 
-        request = self.successResultOf(renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/json"]},
-            body=publishBody))
+        request = self.successResultOf(
+            renderResource(
+                resource,
+                b"/",
+                method=b"POST",
+                headers={b"Content-Type": [b"application/json"]},
+                body=publishBody,
+            )
+        )
 
         self.assertEqual(request.code, 400)
-        self.assertIn(b"Request denied based on IP address",
-                      request.get_written_data())
+        self.assertIn(b"Request denied based on IP address", request.get_written_data())
 
 
 class SecureTransportTestCase(TestCase):
     """
     Unit tests for the transport security testing parts of L{_CommonResource}.
     """
+
     def test_required_tls_with_tls(self):
         """
         Required TLS, plus a request over TLS, will allow the request.
@@ -96,10 +114,16 @@ class SecureTransportTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({"require_tls": True}, session)
 
-        request = self.successResultOf(renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/json"]},
-            body=publishBody, isSecure=True))
+        request = self.successResultOf(
+            renderResource(
+                resource,
+                b"/",
+                method=b"POST",
+                headers={b"Content-Type": [b"application/json"]},
+                body=publishBody,
+                isSecure=True,
+            )
+        )
 
         self.assertEqual(request.code, 200)
 
@@ -110,10 +134,16 @@ class SecureTransportTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({}, session)
 
-        request = self.successResultOf(renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/json"]},
-            body=publishBody, isSecure=True))
+        request = self.successResultOf(
+            renderResource(
+                resource,
+                b"/",
+                method=b"POST",
+                headers={b"Content-Type": [b"application/json"]},
+                body=publishBody,
+                isSecure=True,
+            )
+        )
 
         self.assertEqual(request.code, 200)
 
@@ -124,10 +154,16 @@ class SecureTransportTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({"require_tls": True}, session)
 
-        request = self.successResultOf(renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/json"]},
-            body=publishBody, isSecure=False))
+        request = self.successResultOf(
+            renderResource(
+                resource,
+                b"/",
+                method=b"POST",
+                headers={b"Content-Type": [b"application/json"]},
+                body=publishBody,
+                isSecure=False,
+            )
+        )
 
         self.assertEqual(request.code, 400)
 
@@ -136,6 +172,7 @@ class RequestBodyTestCase(TestCase):
     """
     Unit tests for the body validation parts of L{_CommonResource}.
     """
+
     def test_allow_charset_in_content_type(self):
         """
         A charset in the content-type will be allowed.
@@ -143,14 +180,18 @@ class RequestBodyTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({}, session)
 
-        request = self.successResultOf(renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/json; charset=utf-8"]},
-            body=publishBody))
+        request = self.successResultOf(
+            renderResource(
+                resource,
+                b"/",
+                method=b"POST",
+                headers={b"Content-Type": [b"application/json; charset=utf-8"]},
+                body=publishBody,
+            )
+        )
 
         self.assertEqual(request.code, 200)
-        self.assertIn(b'{"id":',
-                      request.get_written_data())
+        self.assertIn(b'{"id":', request.get_written_data())
 
     def test_allow_caps_in_content_type(self):
         """
@@ -159,14 +200,18 @@ class RequestBodyTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({}, session)
 
-        request = self.successResultOf(renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"CONTENT-TYPE": [b"APPLICATION/JSON"]},
-            body=publishBody))
+        request = self.successResultOf(
+            renderResource(
+                resource,
+                b"/",
+                method=b"POST",
+                headers={b"CONTENT-TYPE": [b"APPLICATION/JSON"]},
+                body=publishBody,
+            )
+        )
 
         self.assertEqual(request.code, 200)
-        self.assertIn(b'{"id":',
-                      request.get_written_data())
+        self.assertIn(b'{"id":', request.get_written_data())
 
     def test_bad_content_type(self):
         """
@@ -176,10 +221,15 @@ class RequestBodyTestCase(TestCase):
         resource = PublisherResource({}, session)
 
         with LogCapturer("debug") as l:
-            request = self.successResultOf(renderResource(
-                resource, b"/", method=b"POST",
-                headers={b"Content-Type": [b"application/text"]},
-                body=publishBody))
+            request = self.successResultOf(
+                renderResource(
+                    resource,
+                    b"/",
+                    method=b"POST",
+                    headers={b"Content-Type": [b"application/text"]},
+                    body=publishBody,
+                )
+            )
 
         self.assertEqual(request.code, 400)
 
@@ -195,10 +245,15 @@ class RequestBodyTestCase(TestCase):
         resource = PublisherResource({}, session)
 
         with LogCapturer("debug") as l:
-            request = self.successResultOf(renderResource(
-                resource, b"/", method=b"BLBLBLB",
-                headers={b"Content-Type": [b"application/json"]},
-                body=publishBody))
+            request = self.successResultOf(
+                renderResource(
+                    resource,
+                    b"/",
+                    method=b"BLBLBLB",
+                    headers={b"Content-Type": [b"application/json"]},
+                    body=publishBody,
+                )
+            )
 
         self.assertEqual(request.code, 405)
         errors = l.get_category("AR405")
@@ -213,10 +268,15 @@ class RequestBodyTestCase(TestCase):
         resource = PublisherResource({"post_body_limit": 1}, session)
 
         with LogCapturer("debug") as l:
-            request = self.successResultOf(renderResource(
-                resource, b"/", method=b"POST",
-                headers={b"Content-Type": [b"application/json"]},
-                body=publishBody))
+            request = self.successResultOf(
+                renderResource(
+                    resource,
+                    b"/",
+                    method=b"POST",
+                    headers={b"Content-Type": [b"application/json"]},
+                    body=publishBody,
+                )
+            )
 
         self.assertEqual(request.code, 413)
 
@@ -232,11 +292,18 @@ class RequestBodyTestCase(TestCase):
         resource = PublisherResource({}, session)
 
         with LogCapturer("debug") as l:
-            request = self.successResultOf(renderResource(
-                resource, b"/", method=b"POST",
-                headers={b"Content-Type": [b"application/json"],
-                         b"Content-Length": ["1", "10"]},
-                body=publishBody))
+            request = self.successResultOf(
+                renderResource(
+                    resource,
+                    b"/",
+                    method=b"POST",
+                    headers={
+                        b"Content-Type": [b"application/json"],
+                        b"Content-Length": ["1", "10"],
+                    },
+                    body=publishBody,
+                )
+            )
 
         self.assertEqual(request.code, 400)
 
@@ -253,11 +320,18 @@ class RequestBodyTestCase(TestCase):
         resource = PublisherResource({"post_body_limit": 1}, session)
 
         with LogCapturer("debug") as l:
-            request = self.successResultOf(renderResource(
-                resource, b"/", method=b"POST",
-                headers={b"Content-Type": [b"application/json"],
-                         b"Content-Length": [b"1"]},
-                body=publishBody))
+            request = self.successResultOf(
+                renderResource(
+                    resource,
+                    b"/",
+                    method=b"POST",
+                    headers={
+                        b"Content-Type": [b"application/json"],
+                        b"Content-Length": [b"1"],
+                    },
+                    body=publishBody,
+                )
+            )
 
         self.assertEqual(request.code, 400)
 
@@ -273,10 +347,15 @@ class RequestBodyTestCase(TestCase):
         resource = PublisherResource({}, session)
 
         with LogCapturer("debug") as l:
-            request = self.successResultOf(renderResource(
-                resource, b"/", method=b"POST",
-                headers={b"Content-Type": [b"application/json"]},
-                body=b"sometext"))
+            request = self.successResultOf(
+                renderResource(
+                    resource,
+                    b"/",
+                    method=b"POST",
+                    headers={b"Content-Type": [b"application/json"]},
+                    body=b"sometext",
+                )
+            )
 
         self.assertEqual(request.code, 400)
 
@@ -292,10 +371,15 @@ class RequestBodyTestCase(TestCase):
         resource = PublisherResource({}, session)
 
         with LogCapturer("debug") as l:
-            request = self.successResultOf(renderResource(
-                resource, b"/", method=b"POST",
-                headers={b"Content-Type": [b"application/json"]},
-                body=b"[{},{}]"))
+            request = self.successResultOf(
+                renderResource(
+                    resource,
+                    b"/",
+                    method=b"POST",
+                    headers={b"Content-Type": [b"application/json"]},
+                    body=b"[{},{}]",
+                )
+            )
 
         self.assertEqual(request.code, 400)
 
@@ -310,14 +394,18 @@ class RequestBodyTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({}, session)
 
-        request = self.successResultOf(renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/json"]},
-            body=b'{"topic": "com.test.messages", "args": ["\xe2\x98\x83"]}'))
+        request = self.successResultOf(
+            renderResource(
+                resource,
+                b"/",
+                method=b"POST",
+                headers={b"Content-Type": [b"application/json"]},
+                body=b'{"topic": "com.test.messages", "args": ["\xe2\x98\x83"]}',
+            )
+        )
 
         self.assertEqual(request.code, 200)
-        self.assertIn(b'{"id":',
-                      request.get_written_data())
+        self.assertIn(b'{"id":', request.get_written_data())
 
     def test_ASCII_denied(self):
         """
@@ -327,10 +415,15 @@ class RequestBodyTestCase(TestCase):
         resource = PublisherResource({}, session)
 
         with LogCapturer("debug") as l:
-            request = self.successResultOf(renderResource(
-                resource, b"/", method=b"POST",
-                headers={b"Content-Type": [b"application/json; charset=ascii"]},
-                body=b''))
+            request = self.successResultOf(
+                renderResource(
+                    resource,
+                    b"/",
+                    method=b"POST",
+                    headers={b"Content-Type": [b"application/json; charset=ascii"]},
+                    body=b"",
+                )
+            )
 
         self.assertEqual(request.code, 400)
 
@@ -346,14 +439,18 @@ class RequestBodyTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({}, session)
 
-        request = self.successResultOf(renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/json;charset=utf-8"]},
-            body=b'{"topic": "com.test.messages", "args": ["\xe2\x98\x83"]}'))
+        request = self.successResultOf(
+            renderResource(
+                resource,
+                b"/",
+                method=b"POST",
+                headers={b"Content-Type": [b"application/json;charset=utf-8"]},
+                body=b'{"topic": "com.test.messages", "args": ["\xe2\x98\x83"]}',
+            )
+        )
 
         self.assertEqual(request.code, 200)
-        self.assertIn(b'{"id":',
-                      request.get_written_data())
+        self.assertIn(b'{"id":', request.get_written_data())
 
     def test_undecodable_UTF8(self):
         """
@@ -363,10 +460,15 @@ class RequestBodyTestCase(TestCase):
         resource = PublisherResource({}, session)
 
         with LogCapturer("debug") as l:
-            request = self.successResultOf(renderResource(
-                resource, b"/", method=b"POST",
-                headers={b"Content-Type": [b"application/json;charset=utf-8"]},
-                body=b'{"topic": "com.test.messages", "args": ["\x61\x62\x63\xe9"]}'))
+            request = self.successResultOf(
+                renderResource(
+                    resource,
+                    b"/",
+                    method=b"POST",
+                    headers={b"Content-Type": [b"application/json;charset=utf-8"]},
+                    body=b'{"topic": "com.test.messages", "args": ["\x61\x62\x63\xe9"]}',
+                )
+            )
 
         self.assertEqual(request.code, 400)
 
@@ -383,10 +485,15 @@ class RequestBodyTestCase(TestCase):
         resource = PublisherResource({}, session)
 
         with LogCapturer("debug") as l:
-            request = self.successResultOf(renderResource(
-                resource, b"/", method=b"POST",
-                headers={b"Content-Type": [b"application/json;charset=blarg"]},
-                body=b'{"args": ["\x61\x62\x63\xe9"]}'))
+            request = self.successResultOf(
+                renderResource(
+                    resource,
+                    b"/",
+                    method=b"POST",
+                    headers={b"Content-Type": [b"application/json;charset=blarg"]},
+                    body=b'{"args": ["\x61\x62\x63\xe9"]}',
+                )
+            )
 
         self.assertEqual(request.code, 400)
 
@@ -402,10 +509,17 @@ class RequestBodyTestCase(TestCase):
         resource = PublisherResource({}, session)
 
         with LogCapturer("debug") as l:
-            request = self.successResultOf(renderResource(
-                resource, b"/", method=b"POST",
-                headers={b"Content-Type": [b"application/json;charset=blarg;charset=boo"]},
-                body=b'{"foo": "\xe2\x98\x83"}'))
+            request = self.successResultOf(
+                renderResource(
+                    resource,
+                    b"/",
+                    method=b"POST",
+                    headers={
+                        b"Content-Type": [b"application/json;charset=blarg;charset=boo"]
+                    },
+                    body=b'{"foo": "\xe2\x98\x83"}',
+                )
+            )
 
         errors = l.get_category("AR450")
         self.assertEqual(len(errors), 1)
@@ -414,10 +528,15 @@ class RequestBodyTestCase(TestCase):
         del l
 
         with LogCapturer("debug") as l:
-            request = self.successResultOf(renderResource(
-                resource, b"/", method=b"POST",
-                headers={b"Content-Type": [b"charset=blarg;application/json"]},
-                body=b'{"foo": "\xe2\x98\x83"}'))
+            request = self.successResultOf(
+                renderResource(
+                    resource,
+                    b"/",
+                    method=b"POST",
+                    headers={b"Content-Type": [b"charset=blarg;application/json"]},
+                    body=b'{"foo": "\xe2\x98\x83"}',
+                )
+            )
 
         self.assertEqual(request.code, 400)
 

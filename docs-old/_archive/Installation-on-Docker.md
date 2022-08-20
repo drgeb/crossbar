@@ -29,7 +29,7 @@ If things are working, this logs the startup of Crossbar.io within the container
 2017-04-06T14:19:31+0000 [Controller      1]      __  __  __  __  __  __      __     __
 2017-04-06T14:19:31+0000 [Controller      1]     /  `|__)/  \/__`/__`|__) /\ |__)  |/  \
 2017-04-06T14:19:31+0000 [Controller      1]     \__,|  \\__/.__/.__/|__)/~~\|  \. |\__/
-2017-04-06T14:19:31+0000 [Controller      1]                                         
+2017-04-06T14:19:31+0000 [Controller      1]
 2017-04-06T14:19:31+0000 [Controller      1] Version:     Crossbar.io COMMUNITY 17.3.1
 ```
 

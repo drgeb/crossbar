@@ -99,4 +99,3 @@ You can now retrieve above JSON e.g. by issueing an
 `XMLHttpRequest <http://www.w3.org/TR/XMLHttpRequest/>`__ from
 JavaScript and use the custom parameter values to control some aspect in
 your application frontend.
-

@@ -28,15 +28,17 @@
 #
 #####################################################################################
 
-from autobahn.twisted.websocket import WampWebSocketClientFactory, \
-    WampWebSocketClientProtocol
+from autobahn.twisted.websocket import (
+    WampWebSocketClientFactory,
+    WampWebSocketClientProtocol,
+)
 
 from twisted.internet.error import ProcessDone, ProcessTerminated
 from twisted.internet.error import ConnectionDone
 
 from txaio import make_logger
 
-__all__ = ('create_native_worker_client_factory',)
+__all__ = ("create_native_worker_client_factory",)
 
 
 class NativeWorkerClientProtocol(WampWebSocketClientProtocol):
@@ -49,17 +51,17 @@ class NativeWorkerClientProtocol(WampWebSocketClientProtocol):
         self.factory.proto = self
 
         # native workers are implicitly trusted
-        self._authid = 'crossbar.process.{}'.format(self._pid)
+        self._authid = "crossbar.process.{}".format(self._pid)
         self._authrole = self.factory._authrole
 
         # the worker is actively spawned by the node controller,
         # and we talk over the pipes that were create during
         # process creation. this established implicit trust.
-        self._authmethod = 'trusted'
+        self._authmethod = "trusted"
 
         # the trust is established implicitly by the way the
         # the client (worker) is created
-        self._authprovider = 'programcode'
+        self._authprovider = "programcode"
 
         # FIXME / CHECKME
         self._cbtid = None
@@ -69,7 +71,10 @@ class NativeWorkerClientProtocol(WampWebSocketClientProtocol):
         if isinstance(reason.value, ConnectionDone):
             self.log.info("Native worker connection closed cleanly.")
         else:
-            self.log.warn("Native worker connection closed uncleanly: {reason}", reason=reason.value)
+            self.log.warn(
+                "Native worker connection closed uncleanly: {reason}",
+                reason=reason.value,
+            )
 
         WampWebSocketClientProtocol.connectionLost(self, reason)
         self.factory.proto = None
@@ -83,16 +88,25 @@ class NativeWorkerClientProtocol(WampWebSocketClientProtocol):
                 if not self.factory._on_exit.called:
                     self.factory._on_exit.errback(reason)
                 else:
-                    self.log.error("unhandled code path (1) in WorkerClientProtocol.connectionLost: {reason}", reason=reason.value)
+                    self.log.error(
+                        "unhandled code path (1) in WorkerClientProtocol.connectionLost: {reason}",
+                        reason=reason.value,
+                    )
         elif isinstance(reason.value, (ProcessDone, ConnectionDone)):
             # the worker exited cleanly
             if not self.factory._on_exit.called:
                 self.factory._on_exit.callback(None)
             else:
-                self.log.error("unhandled code path (2) in WorkerClientProtocol.connectionLost: {reason}", reason=reason.value)
+                self.log.error(
+                    "unhandled code path (2) in WorkerClientProtocol.connectionLost: {reason}",
+                    reason=reason.value,
+                )
         else:
             # should not arrive here
-            self.log.error("unhandled code path (3) in WorkerClientProtocol.connectionLost: {reason}", reason=reason.value)
+            self.log.error(
+                "unhandled code path (3) in WorkerClientProtocol.connectionLost: {reason}",
+                reason=reason.value,
+            )
 
 
 class NativeWorkerClientFactory(WampWebSocketClientFactory):
@@ -100,7 +114,7 @@ class NativeWorkerClientFactory(WampWebSocketClientFactory):
     log = make_logger()
 
     def __init__(self, *args, **kwargs):
-        self._authrole = kwargs.pop('authrole')
+        self._authrole = kwargs.pop("authrole")
         WampWebSocketClientFactory.__init__(self, *args, **kwargs)
         self.proto = None
 
@@ -116,7 +130,9 @@ class NativeWorkerClientFactory(WampWebSocketClientFactory):
             # self.proto.transport.loseConnection()
 
 
-def create_native_worker_client_factory(router_session_factory, authrole, on_ready, on_exit):
+def create_native_worker_client_factory(
+    router_session_factory, authrole, on_ready, on_exit
+):
     """
     Create a transport factory for talking to native workers.
 
@@ -129,11 +145,15 @@ def create_native_worker_client_factory(router_session_factory, authrole, on_rea
     :param router_session_factory: Router session factory to attach to.
     :type router_session_factory: :class:`crossbar.router.session.RouterSessionFactory`
     """
-    factory = NativeWorkerClientFactory(router_session_factory, 'ws://localhost', authrole=authrole)
+    factory = NativeWorkerClientFactory(
+        router_session_factory, "ws://localhost", authrole=authrole
+    )
 
     # we need to increase the opening handshake timeout in particular, since starting up a worker
     # on PyPy will take a little (due to JITting)
-    factory.setProtocolOptions(failByDrop=False, openHandshakeTimeout=90, closeHandshakeTimeout=5)
+    factory.setProtocolOptions(
+        failByDrop=False, openHandshakeTimeout=90, closeHandshakeTimeout=5
+    )
 
     # on_ready is resolved in crossbar/node/process.py:on_worker_ready around 175
     # after crossbar.node.<ID>.on_worker_ready is published to (in the controller session)

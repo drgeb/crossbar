@@ -32,7 +32,9 @@ from collections import OrderedDict
 
 from twisted.trial.unittest import TestCase
 from twisted.internet.protocol import Protocol, Factory
-from twisted.test.proto_helpers import StringTransportWithDisconnection as StringTransport
+from twisted.test.proto_helpers import (
+    StringTransportWithDisconnection as StringTransport,
+)
 from twisted.web.server import Site
 from twisted.web.resource import Resource
 
@@ -58,7 +60,7 @@ class UniSocketTests(TestCase):
         t.protocol = p
 
         self.assertTrue(t.connected)
-        p.dataReceived(b'\x7F0000000')
+        p.dataReceived(b"\x7F0000000")
 
         self.assertFalse(t.connected)
 
@@ -73,6 +75,7 @@ class UniSocketTests(TestCase):
             """
             A fake RawSocket factory which just echos data back.
             """
+
             def dataReceived(self, data):
                 self.transport.write(data)
 
@@ -84,11 +87,11 @@ class UniSocketTests(TestCase):
         t.protocol = p
 
         self.assertTrue(t.connected)
-        p.dataReceived(b'\x7F0000000')
-        p.dataReceived(b'moredata')
+        p.dataReceived(b"\x7F0000000")
+        p.dataReceived(b"moredata")
 
         self.assertTrue(t.connected)
-        self.assertEqual(t.value(), b'\x7F0000000moredata')
+        self.assertEqual(t.value(), b"\x7F0000000moredata")
 
     def test_web_with_no_factory(self):
         """
@@ -103,7 +106,7 @@ class UniSocketTests(TestCase):
         t.protocol = p
 
         self.assertTrue(t.connected)
-        p.dataReceived(b'GET /foo HTTP/1.1\r\n\r\n')
+        p.dataReceived(b"GET /foo HTTP/1.1\r\n\r\n")
         self.assertFalse(t.connected)
 
     def test_invalid_status_line(self):
@@ -120,7 +123,7 @@ class UniSocketTests(TestCase):
         t.protocol = p
 
         self.assertTrue(t.connected)
-        p.dataReceived(b'this is not HTTP\r\n\r\n')
+        p.dataReceived(b"this is not HTTP\r\n\r\n")
         self.assertFalse(t.connected)
 
     def test_web_with_factory(self):
@@ -145,7 +148,7 @@ class UniSocketTests(TestCase):
         t.protocol = p
 
         self.assertTrue(t.connected)
-        p.dataReceived(b'GET / HTTP/1.1\r\nConnection: close\r\n\r\n')
+        p.dataReceived(b"GET / HTTP/1.1\r\nConnection: close\r\n\r\n")
         self.assertFalse(t.connected)
 
         self.assertIn(b"hi!", t.value())
@@ -161,6 +164,7 @@ class UniSocketTests(TestCase):
             """
             A fake WebSocket factory which just echos data back.
             """
+
             def dataReceived(self, data):
                 self.transport.write(data)
 
@@ -175,11 +179,10 @@ class UniSocketTests(TestCase):
         t.protocol = p
 
         self.assertTrue(t.connected)
-        p.dataReceived(b'GET /ws HTTP/1.1\r\nConnection: close\r\n\r\n')
+        p.dataReceived(b"GET /ws HTTP/1.1\r\nConnection: close\r\n\r\n")
 
         self.assertTrue(t.connected)
-        self.assertEqual(t.value(),
-                         b'GET /ws HTTP/1.1\r\nConnection: close\r\n\r\n')
+        self.assertEqual(t.value(), b"GET /ws HTTP/1.1\r\nConnection: close\r\n\r\n")
 
     def test_websocket_with_no_map(self):
         """
@@ -196,7 +199,7 @@ class UniSocketTests(TestCase):
         t.protocol = p
 
         self.assertTrue(t.connected)
-        p.dataReceived(b'GET /ws HTTP/1.1\r\nConnection: close\r\n\r\n')
+        p.dataReceived(b"GET /ws HTTP/1.1\r\nConnection: close\r\n\r\n")
 
         self.assertFalse(t.connected)
         self.assertEqual(t.value(), b"")
@@ -215,7 +218,7 @@ class UniSocketTests(TestCase):
         t.protocol = p
 
         self.assertTrue(t.connected)
-        p.dataReceived(b'\x100000000')
+        p.dataReceived(b"\x100000000")
 
         self.assertFalse(t.connected)
 
@@ -230,6 +233,7 @@ class UniSocketTests(TestCase):
             """
             A fake MQTT factory which just echos data back.
             """
+
             def connectionMade(self, *a):
                 pass
 
@@ -244,8 +248,8 @@ class UniSocketTests(TestCase):
         t.protocol = p
 
         self.assertTrue(t.connected)
-        p.dataReceived(b'\x100000000')
-        p.dataReceived(b'moredata')
+        p.dataReceived(b"\x100000000")
+        p.dataReceived(b"moredata")
 
         self.assertTrue(t.connected)
-        self.assertEqual(t.value(), b'\x100000000moredata')
+        self.assertEqual(t.value(), b"\x100000000moredata")

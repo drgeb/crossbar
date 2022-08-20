@@ -5,7 +5,7 @@
 
 .. If you are new to Crossbar.io development in general you should start here at :ref:`getting-started`
 
-Introduction 
+Introduction
 -------------
 *  :doc:`Getting Started <pages/gettingstarted>`
 
@@ -29,4 +29,3 @@ More
 * `Contributing to the Project** <https://github.com/crossbario/crossbar/blob/master/CONTRIBUTING.md>`__
 * :doc:`Contributing FAQ  <pages/about/Contributing-FAQ>`
 * :doc:`FAQ  <pages/about/FAQ>`
-

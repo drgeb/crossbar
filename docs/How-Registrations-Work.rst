@@ -48,9 +48,9 @@ Clients can be notfied of events regarding the lifecycle of
 registrations, and query for information about existing registrations
 using the
 
--  :doc:`Registration Meta-Events and  Procedures <Registration-Meta-Events-and-Procedures>` 
+-  :doc:`Registration Meta-Events and  Procedures <Registration-Meta-Events-and-Procedures>`
 
 A registered procedure can return a single result (the default) or a set
 of results over time, see
 
--  :doc:`Progressive Call Results <Progressive-Call-Results>` 
+-  :doc:`Progressive Call Results <Progressive-Call-Results>`

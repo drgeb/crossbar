@@ -230,4 +230,3 @@ Point your browser to ``http://localhost:8080``. You should see an
 
 Note that you can also put (another) **Static Web Service** on a
 **subpath** serving assets from a Python package resource.
-

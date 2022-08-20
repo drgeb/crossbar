@@ -7,6 +7,3 @@ Administration Guide
 
 Test
 ----
-
-
-

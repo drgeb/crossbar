@@ -36,7 +36,7 @@ import unittest
 
 class TestLmdb(unittest.TestCase):
 
-    DBFILE = 'test.dat'
+    DBFILE = "test.dat"
 
     def _scratch(self):
         if os.path.exists(self.DBFILE):
@@ -48,8 +48,9 @@ class TestLmdb(unittest.TestCase):
     def _insert_data1(self, n=10, shuffle=True):
         data = []
         for i in range(n):
-            data.append(('key{}'.format(i).encode('utf8'),
-                         'data{}'.format(i).encode('utf8')))
+            data.append(
+                ("key{}".format(i).encode("utf8"), "data{}".format(i).encode("utf8"))
+            )
 
         inserted = data[:]
         if shuffle:
@@ -70,7 +71,7 @@ class TestLmdb(unittest.TestCase):
         self._scratch()
 
         self.db = lmdb.open(self.DBFILE, max_dbs=10)
-        self.db1 = self.db.open_db(b'table1', create=True)
+        self.db1 = self.db.open_db(b"table1", create=True)
         self.addCleanup(self.db.close)
         self.addCleanup(self._scratch)
 
@@ -92,7 +93,7 @@ class TestLmdb(unittest.TestCase):
             cursor = txn.cursor(db=self.db1)
 
             # Position at first key >= 'key5'
-            if cursor.set_range(b'key5'):
+            if cursor.set_range(b"key5"):
                 for key, value in cursor:
                     data_read.append((key, value))
 

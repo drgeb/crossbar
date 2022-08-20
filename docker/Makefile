@@ -232,4 +232,3 @@ test_armhf_pypy3:
 
 test_aarch64_pypy3:
 	@echo "PyPy3 isn't available for aarch64 yet"
-

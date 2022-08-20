@@ -45,21 +45,19 @@ class MQTTTopicTests(TestCase):
         """
         for topic, mapped_topic, match_policy in [
             # exact matching
-            ('foobar', 'foobar', 'exact'),
-            ('com/example/topic1', 'com.example.topic1', 'exact'),
-            ('tennis/player1', 'tennis.player1', 'exact'),
-            ('tennis', 'tennis', 'exact'),
-
+            ("foobar", "foobar", "exact"),
+            ("com/example/topic1", "com.example.topic1", "exact"),
+            ("tennis/player1", "tennis.player1", "exact"),
+            ("tennis", "tennis", "exact"),
             # prefix matching
-            ('sport/tennis/player1/#', 'sport.tennis.player1.', 'prefix'),
-            ('#', '', 'prefix'),
-
+            ("sport/tennis/player1/#", "sport.tennis.player1.", "prefix"),
+            ("#", "", "prefix"),
             # wildcard matching
-            ('+', '', 'wildcard'),
-            ('+/tennis/player1', '.tennis.player1', 'wildcard'),
-            ('sport/+/player1', 'sport..player1', 'wildcard'),
-            ('sport/tennis/+', 'sport.tennis.', 'wildcard'),
-            ('+/+/+', '..', 'wildcard')
+            ("+", "", "wildcard"),
+            ("+/tennis/player1", ".tennis.player1", "wildcard"),
+            ("sport/+/player1", "sport..player1", "wildcard"),
+            ("sport/tennis/+", "sport.tennis.", "wildcard"),
+            ("+/+/+", "..", "wildcard"),
         ]:
             _mapped_topic, _match_policy = _mqtt_topicfilter_to_wamp(topic)
             self.assertEqual(_mapped_topic, mapped_topic)
@@ -73,40 +71,34 @@ class MQTTTopicTests(TestCase):
             # invalid types
             None,
             23,
-            b'bla',
-
+            b"bla",
             # invalid according to MQTT v3.3.1
-            '',
-            'sport/tennis#',
-            'sport/tennis/#/ranking',
-            '##',
-            '++',
-            'sport+',
-            'sport/+ab/player1',
-
+            "",
+            "sport/tennis#",
+            "sport/tennis/#/ranking",
+            "##",
+            "++",
+            "sport+",
+            "sport/+ab/player1",
             # The following are valid topic names/filters in MQTT v3.3.1,
             # but are invalid in Crossbar.io (WAMP):
-
             # cannot combine wildcard and prefix matching
-            '+/tennis/#',
-            '+/#',
-
+            "+/tennis/#",
+            "+/#",
             # components cannot contain whitespace
-            'spo oh rt',
-            'foo/b r/baz',
-            'sport/ /#',
-            'sport/ten nis/#',
-
+            "spo oh rt",
+            "foo/b r/baz",
+            "sport/ /#",
+            "sport/ten nis/#",
             # no trailing/leading level separator
-            '/tennis/player1',
-            'tennis/player1/',
-            '/tennis/player1/',
-
+            "/tennis/player1",
+            "tennis/player1/",
+            "/tennis/player1/",
             # no double, triple, .. level separator
-            'tennis//player1',
-            '//',
-            'tennis///player1',
-            '///',
+            "tennis//player1",
+            "//",
+            "tennis///player1",
+            "///",
         ]:
             with self.assertRaises(TypeError):
                 _mqtt_topicfilter_to_wamp(topic)
@@ -116,12 +108,12 @@ class MQTTTopicTests(TestCase):
         Test checking and conversion of valid MQTT topic names.
         """
         for topic, mapped_topic in [
-            ('com/example/topic1', 'com.example.topic1'),
-            ('a', 'a'),
-            ('foobar', 'foobar'),
-            ('com/example/topic1', 'com.example.topic1'),
-            ('tennis/player1', 'tennis.player1'),
-            ('tennis', 'tennis'),
+            ("com/example/topic1", "com.example.topic1"),
+            ("a", "a"),
+            ("foobar", "foobar"),
+            ("com/example/topic1", "com.example.topic1"),
+            ("tennis/player1", "tennis.player1"),
+            ("tennis", "tennis"),
         ]:
             _mapped_topic = _mqtt_topicname_to_wamp(topic)
             self.assertEqual(_mapped_topic, mapped_topic)
@@ -134,34 +126,28 @@ class MQTTTopicTests(TestCase):
             # invalid types
             None,
             23,
-            b'bla',
-
+            b"bla",
             # must not contain wildcard characters
-            '#',
-            '+',
-            'sport/tennis/player1/#',
-            'sport/+/player1',
-
+            "#",
+            "+",
+            "sport/tennis/player1/#",
+            "sport/+/player1",
             # topic cannot be empty
-            '',
-
+            "",
             # The following are valid topic names/filters in MQTT v3.3.1,
             # but are invalid in Crossbar.io (WAMP):
-
             # components cannot contain whitespace
-            'spo oh rt',
-            'foo/b r/baz',
-
+            "spo oh rt",
+            "foo/b r/baz",
             # no trailing/leading level separator
-            '/tennis/player1',
-            'tennis/player1/',
-            '/tennis/player1/',
-
+            "/tennis/player1",
+            "tennis/player1/",
+            "/tennis/player1/",
             # no double, triple, .. level separator
-            'tennis//player1',
-            '//',
-            'tennis///player1',
-            '///',
+            "tennis//player1",
+            "//",
+            "tennis///player1",
+            "///",
         ]:
             with self.assertRaises(TypeError):
                 _mqtt_topicname_to_wamp(topic)

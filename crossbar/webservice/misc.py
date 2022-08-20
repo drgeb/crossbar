@@ -39,7 +39,11 @@ from twisted.web.static import File
 from twisted.web.twcgi import CGIScript, CGIProcessProtocol
 
 import crossbar
-from crossbar.webservice.base import RouterWebService, Resource404, set_cross_origin_headers
+from crossbar.webservice.base import (
+    RouterWebService,
+    Resource404,
+    set_cross_origin_headers,
+)
 
 
 class NodeInfoResource(Resource):
@@ -51,28 +55,27 @@ class NodeInfoResource(Resource):
 
     def __init__(self, templates, controller_session):
         Resource.__init__(self)
-        self._page = templates.get_template('cb_node_info.html')
-        self._pid = '{}'.format(os.getpid())
+        self._page = templates.get_template("cb_node_info.html")
+        self._pid = "{}".format(os.getpid())
         self._controller_session = controller_session
 
     def _delayedRender(self, node_info, request):
         try:
             peer = request.transport.getPeer()
-            peer = '{}:{}'.format(peer.host, peer.port)
+            peer = "{}:{}".format(peer.host, peer.port)
         except:
-            peer = '?:?'
+            peer = "?:?"
 
-        s = self._page.render(cbVersion=crossbar.__version__,
-                              workerPid=self._pid,
-                              peer=peer,
-                              **node_info)
+        s = self._page.render(
+            cbVersion=crossbar.__version__, workerPid=self._pid, peer=peer, **node_info
+        )
 
-        request.write(s.encode('utf8'))
+        request.write(s.encode("utf8"))
         request.finish()
 
     def render_GET(self, request):
         # http://twistedmatrix.com/documents/current/web/howto/web-in-60/asynchronous-deferred.html
-        d = self._controller_session.call('crossbar.get_status')
+        d = self._controller_session.call("crossbar.get_status")
         d.addCallback(self._delayedRender, request)
         return server.NOT_DONE_YET
 
@@ -85,7 +88,7 @@ class RouterWebServiceNodeInfo(RouterWebService):
     @staticmethod
     def create(transport, path, config):
         personality = transport.worker.personality
-        personality.WEB_SERVICE_CHECKERS['nodeinfo'](personality, config)
+        personality.WEB_SERVICE_CHECKERS["nodeinfo"](personality, config)
 
         resource = NodeInfoResource(transport.templates, transport.worker)
 
@@ -101,16 +104,16 @@ class JsonResource(Resource):
         Resource.__init__(self)
         options = options or {}
 
-        if options.get('prettify', False):
+        if options.get("prettify", False):
             self._data = json.dumps(value, sort_keys=True, indent=3, ensure_ascii=False)
         else:
-            self._data = json.dumps(value, separators=(',', ':'), ensure_ascii=False)
+            self._data = json.dumps(value, separators=(",", ":"), ensure_ascii=False)
 
         # Twisted Web render_METHOD methods are expected to return a byte string
-        self._data = self._data.encode('utf8')
+        self._data = self._data.encode("utf8")
 
-        self._allow_cross_origin = options.get('allow_cross_origin', True)
-        self._discourage_caching = options.get('discourage_caching', False)
+        self._allow_cross_origin = options.get("allow_cross_origin", True)
+        self._discourage_caching = options.get("discourage_caching", False)
 
         # number of HTTP/GET requests we served from this resource
         #
@@ -122,7 +125,7 @@ class JsonResource(Resource):
         # note: both args to request.setHeader are supposed to be byte strings
         # https://twistedmatrix.com/documents/current/api/twisted.web.http.Request.html#setHeader
         #
-        request.setHeader(b'content-type', b'application/json; charset=utf8-8')
+        request.setHeader(b"content-type", b"application/json; charset=utf8-8")
 
         # set response headers for cross-origin requests
         #
@@ -132,7 +135,9 @@ class JsonResource(Resource):
         # set response headers to disallow caching
         #
         if self._discourage_caching:
-            request.setHeader(b'cache-control', b'no-store, no-cache, must-revalidate, max-age=0')
+            request.setHeader(
+                b"cache-control", b"no-store, no-cache, must-revalidate, max-age=0"
+            )
 
         self._requests_served += 1
 
@@ -147,9 +152,9 @@ class RouterWebServiceJson(RouterWebService):
     @staticmethod
     def create(transport, path, config):
         personality = transport.worker.personality
-        personality.WEB_SERVICE_CHECKERS['json'](personality, config)
+        personality.WEB_SERVICE_CHECKERS["json"](personality, config)
 
-        value = config['value']
+        value = config["value"]
 
         resource = JsonResource(value)
 
@@ -157,14 +162,19 @@ class RouterWebServiceJson(RouterWebService):
 
 
 class CgiScript(CGIScript):
-
     def __init__(self, filename, filter):
         CGIScript.__init__(self, filename)
         self.filter = filter
 
     def runProcess(self, env, request, qargs=[]):
         p = CGIProcessProtocol(request)
-        reactor.spawnProcess(p, self.filter, [self.filter, self.filename], env, os.path.dirname(self.filename))
+        reactor.spawnProcess(
+            p,
+            self.filter,
+            [self.filter, self.filename],
+            env,
+            os.path.dirname(self.filename),
+        )
 
 
 class CgiDirectory(Resource, FilePath):
@@ -178,7 +188,9 @@ class CgiDirectory(Resource, FilePath):
         if childNotFound:
             self.childNotFound = childNotFound
         else:
-            self.childNotFound = NoResource("CGI directories do not support directory listing.")
+            self.childNotFound = NoResource(
+                "CGI directories do not support directory listing."
+            )
 
     def getChild(self, path, request):
         fnp = self.child(path)
@@ -201,13 +213,19 @@ class RouterWebServiceCgi(RouterWebService):
     @staticmethod
     def create(transport, path, config):
         personality = transport.worker.personality
-        personality.WEB_SERVICE_CHECKERS['cgi'](personality, config)
+        personality.WEB_SERVICE_CHECKERS["cgi"](personality, config)
 
-        cgi_processor = config['processor']
-        cgi_directory = os.path.abspath(os.path.join(transport.cbdir, config['directory']))
+        cgi_processor = config["processor"]
+        cgi_directory = os.path.abspath(
+            os.path.join(transport.cbdir, config["directory"])
+        )
         # http://stackoverflow.com/a/20433918/884770
-        cgi_directory = cgi_directory.encode('ascii', 'ignore')
+        cgi_directory = cgi_directory.encode("ascii", "ignore")
 
-        resource = CgiDirectory(cgi_directory, cgi_processor, Resource404(transport.templates, cgi_directory))
+        resource = CgiDirectory(
+            cgi_directory,
+            cgi_processor,
+            Resource404(transport.templates, cgi_directory),
+        )
 
         return RouterWebServiceCgi(transport, path, config, resource)

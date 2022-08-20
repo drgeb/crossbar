@@ -40,8 +40,13 @@ from twisted.logger import formatTime
 from twisted.python.failure import Failure
 
 from crossbar.test import TestCase
-from crossbar._logging import (LogCapturer, make_stdout_observer, make_JSON_observer,
-                               record_separator, make_stderr_observer)
+from crossbar._logging import (
+    LogCapturer,
+    make_stdout_observer,
+    make_JSON_observer,
+    record_separator,
+    make_stderr_observer,
+)
 
 from txaio import make_logger, get_global_log_level, set_global_log_level
 from txaio.tx import Logger, LogLevel
@@ -64,7 +69,6 @@ class _ClassDefLoggerMaker(object):
 
 
 class LoggerModuleTests(TestCase):
-
     def setUp(self):
         self.existing_level = get_global_log_level()
         return super(LoggerModuleTests, self).setUp()
@@ -101,7 +105,6 @@ class LoggerModuleTests(TestCase):
 
 
 class CrossbarLoggerTests(TestCase):
-
     def test_disallow_direct_instantiation(self):
         """
         The developer shouldn't call Logger directly, but use
@@ -130,8 +133,9 @@ class CrossbarLoggerTests(TestCase):
         log._logger.emit.assert_called_with(LogLevel.warn, "Stuff", foo="bar")
 
         log.trace("Stuff that's trace", foo="bar")
-        log._logger.emit.assert_called_with(LogLevel.debug, "Stuff that's trace",
-                                            foo="bar", txaio_trace=1)
+        log._logger.emit.assert_called_with(
+            LogLevel.debug, "Stuff that's trace", foo="bar", txaio_trace=1
+        )
 
     def test_logger_emits_if_higher(self):
         """
@@ -162,8 +166,9 @@ class CrossbarLoggerTests(TestCase):
         """
         lm = _InitLoggerMaker()
 
-        self.assertEqual(lm.log._logger.namespace,
-                         "crossbar.test.test_logger._InitLoggerMaker")
+        self.assertEqual(
+            lm.log._logger.namespace, "crossbar.test.test_logger._InitLoggerMaker"
+        )
 
     def test_logger_namespace_classdef(self):
         """
@@ -172,16 +177,16 @@ class CrossbarLoggerTests(TestCase):
         """
         lm = _ClassDefLoggerMaker()
 
-        self.assertEqual(lm.log._logger.namespace,
-                         "crossbar.test.test_logger._ClassDefLoggerMaker")
+        self.assertEqual(
+            lm.log._logger.namespace, "crossbar.test.test_logger._ClassDefLoggerMaker"
+        )
 
     def test_logger_namespace_moduledef(self):
         """
         The namespace of the Logger is the creator module when it is made in a
         module.
         """
-        self.assertEqual(_log._logger.namespace,
-                         "crossbar.test.test_logger")
+        self.assertEqual(_log._logger.namespace, "crossbar.test.test_logger")
 
     def test_logger_namespace_function(self):
         """
@@ -189,8 +194,7 @@ class CrossbarLoggerTests(TestCase):
         a function outside of a class.
         """
         log = _makelog()
-        self.assertEqual(log._logger.namespace,
-                         "crossbar.test.test_logger._makelog")
+        self.assertEqual(log._logger.namespace, "crossbar.test.test_logger._makelog")
 
     def test_logger_failure(self):
         """
@@ -220,7 +224,6 @@ class CrossbarLoggerTests(TestCase):
 
 
 class JSONObserverTests(TestCase):
-
     def test_basic(self):
         """
         The JSON observer outputs a stream of log events.
@@ -353,7 +356,6 @@ class JSONObserverTests(TestCase):
 
 
 class StdoutObserverTests(TestCase):
-
     def test_basic(self):
 
         stream = NativeStringIO()
@@ -372,16 +374,21 @@ class StdoutObserverTests(TestCase):
         """
         stream = NativeStringIO()
         observer = make_stdout_observer(_file=stream, format="standard")
-        event = {'log_level': LogLevel.info,
-                 'log_namespace': 'crossbar.test.test_logger.StdoutObserverTests',
-                 'log_source': None, 'log_format': 'Hi there!',
-                 'log_system': 'foo', 'log_time': 1434099813.77449}
+        event = {
+            "log_level": LogLevel.info,
+            "log_namespace": "crossbar.test.test_logger.StdoutObserverTests",
+            "log_source": None,
+            "log_format": "Hi there!",
+            "log_system": "foo",
+            "log_time": 1434099813.77449,
+        }
 
         observer(event)
 
         result = stream.getvalue()
-        self.assertEqual(result[:-1],
-                         formatTime(event["log_time"]) + " [foo] Hi there!")
+        self.assertEqual(
+            result[:-1], formatTime(event["log_time"]) + " [foo] Hi there!"
+        )
 
     def test_output_syslogd(self):
         """
@@ -390,10 +397,14 @@ class StdoutObserverTests(TestCase):
         """
         stream = NativeStringIO()
         observer = make_stdout_observer(_file=stream, format="syslogd")
-        event = {'log_level': LogLevel.info,
-                 'log_namespace': 'crossbar.test.test_logger.StdoutObserverTests',
-                 'log_source': None, 'log_format': 'Hi there!',
-                 'log_system': 'foo', 'log_time': 1434099813.77449}
+        event = {
+            "log_level": LogLevel.info,
+            "log_namespace": "crossbar.test.test_logger.StdoutObserverTests",
+            "log_source": None,
+            "log_format": "Hi there!",
+            "log_system": "foo",
+            "log_time": 1434099813.77449,
+        }
 
         observer(event)
 
@@ -408,11 +419,17 @@ class StdoutObserverTests(TestCase):
         stream = NativeStringIO()
         observer = make_stdout_observer(_file=stream, format="syslogd")
 
-        event = {'log_level': LogLevel.info,
-                 'log_namespace': 'crossbar.test.test_logger.StdoutObserverTests',
-                 'log_category': "DBG100", 'x': 'x~', 'y': 'z', 'z': 'a',
-                 'log_source': None,
-                 'log_system': 'foo', 'log_time': 1434099813.77449}
+        event = {
+            "log_level": LogLevel.info,
+            "log_namespace": "crossbar.test.test_logger.StdoutObserverTests",
+            "log_category": "DBG100",
+            "x": "x~",
+            "y": "z",
+            "z": "a",
+            "log_source": None,
+            "log_system": "foo",
+            "log_time": 1434099813.77449,
+        }
 
         observer(event)
 
@@ -421,7 +438,6 @@ class StdoutObserverTests(TestCase):
 
 
 class StderrObserverTests(TestCase):
-
     def test_basic(self):
 
         stream = NativeStringIO()
@@ -440,16 +456,21 @@ class StderrObserverTests(TestCase):
         """
         stream = NativeStringIO()
         observer = make_stderr_observer(_file=stream, format="standard")
-        event = {'log_level': LogLevel.error,
-                 'log_namespace': 'crossbar.test.test_logger.StdoutObserverTests',
-                 'log_source': None, 'log_format': 'Hi there!',
-                 'log_system': 'foo', 'log_time': 1434099813.77449}
+        event = {
+            "log_level": LogLevel.error,
+            "log_namespace": "crossbar.test.test_logger.StdoutObserverTests",
+            "log_source": None,
+            "log_format": "Hi there!",
+            "log_system": "foo",
+            "log_time": 1434099813.77449,
+        }
 
         observer(event)
 
         result = stream.getvalue()
-        self.assertEqual(result[:-1],
-                         formatTime(event["log_time"]) + " [foo] Hi there!")
+        self.assertEqual(
+            result[:-1], formatTime(event["log_time"]) + " [foo] Hi there!"
+        )
 
     def test_output_syslogd(self):
         """
@@ -458,10 +479,14 @@ class StderrObserverTests(TestCase):
         """
         stream = NativeStringIO()
         observer = make_stderr_observer(_file=stream, format="syslogd")
-        event = {'log_level': LogLevel.error,
-                 'log_namespace': 'crossbar.test.test_logger.StdoutObserverTests',
-                 'log_source': None, 'log_format': 'Hi there!',
-                 'log_system': 'foo', 'log_time': 1434099813.77449}
+        event = {
+            "log_level": LogLevel.error,
+            "log_namespace": "crossbar.test.test_logger.StdoutObserverTests",
+            "log_source": None,
+            "log_format": "Hi there!",
+            "log_system": "foo",
+            "log_time": 1434099813.77449,
+        }
 
         observer(event)
 
@@ -476,11 +501,17 @@ class StderrObserverTests(TestCase):
         stream = NativeStringIO()
         observer = make_stderr_observer(_file=stream, format="syslogd")
 
-        event = {'log_level': LogLevel.error,
-                 'log_namespace': 'crossbar.test.test_logger.StdoutObserverTests',
-                 'log_category': "DBG100", 'x': 'x~', 'y': 'z', 'z': 'a',
-                 'log_source': None,
-                 'log_system': 'foo', 'log_time': 1434099813.77449}
+        event = {
+            "log_level": LogLevel.error,
+            "log_namespace": "crossbar.test.test_logger.StdoutObserverTests",
+            "log_category": "DBG100",
+            "x": "x~",
+            "y": "z",
+            "z": "a",
+            "log_source": None,
+            "log_system": "foo",
+            "log_time": 1434099813.77449,
+        }
 
         observer(event)
 
@@ -499,11 +530,15 @@ class StderrObserverTests(TestCase):
         except:
             err = Failure()
 
-        event = {'log_level': LogLevel.error,
-                 'log_namespace': 'crossbar.test.test_logger.StdoutObserverTests',
-                 'log_format': None, 'log_source': None,
-                 'log_failure': err,
-                 'log_system': 'foo', 'log_time': 1434099813.77449}
+        event = {
+            "log_level": LogLevel.error,
+            "log_namespace": "crossbar.test.test_logger.StdoutObserverTests",
+            "log_format": None,
+            "log_source": None,
+            "log_failure": err,
+            "log_system": "foo",
+            "log_time": 1434099813.77449,
+        }
 
         observer(event)
 
@@ -512,7 +547,6 @@ class StderrObserverTests(TestCase):
 
 
 class LogCapturerTests(TestCase):
-
     def test_capturer(self):
         """
         The log capturer is a context manager that captures the logs emitted

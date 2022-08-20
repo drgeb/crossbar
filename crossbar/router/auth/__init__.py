@@ -35,44 +35,48 @@ from crossbar.router.auth.tls import PendingAuthTLS  # noqa
 from crossbar.router.auth.scram import PendingAuthScram  # noqa
 
 
-AUTHMETHODS = set([
-    'ticket',
-    'wampcra',
-    'tls',
-    'cryptosign',
-    'cookie',
-    'anonymous',
-    'scram',
-])
+AUTHMETHODS = set(
+    [
+        "ticket",
+        "wampcra",
+        "tls",
+        "cryptosign",
+        "cookie",
+        "anonymous",
+        "scram",
+    ]
+)
 
 # map of authmethod name to processor class
 # note that not all of AUTHMETHODS need to have an
 # entry here .. eg when dependencies are missing
 AUTHMETHOD_MAP = {
-    'anonymous': PendingAuthAnonymous,
-    'ticket': PendingAuthTicket,
-    'wampcra': PendingAuthWampCra,
-    'tls': PendingAuthTLS,
-    'cookie': None,
-    'scram': PendingAuthScram,
+    "anonymous": PendingAuthAnonymous,
+    "ticket": PendingAuthTicket,
+    "wampcra": PendingAuthWampCra,
+    "tls": PendingAuthTLS,
+    "cookie": None,
+    "scram": PendingAuthScram,
 }
 
 try:
     import nacl  # noqa
+
     HAS_CRYPTOSIGN = True
 except ImportError:
     HAS_CRYPTOSIGN = False
 
 __all__ = [
-    'AUTHMETHODS',
-    'AUTHMETHOD_MAP',
-    'HAS_CRYPTOSIGN',
-    'PendingAuthWampCra',
-    'PendingAuthTicket',
-    'PendingAuthTLS',
+    "AUTHMETHODS",
+    "AUTHMETHOD_MAP",
+    "HAS_CRYPTOSIGN",
+    "PendingAuthWampCra",
+    "PendingAuthTicket",
+    "PendingAuthTLS",
 ]
 
 if HAS_CRYPTOSIGN:
     from crossbar.router.auth.cryptosign import PendingAuthCryptosign  # noqa
-    __all__.append('PendingAuthCryptosign')
-    AUTHMETHOD_MAP['cryptosign'] = PendingAuthCryptosign
+
+    __all__.append("PendingAuthCryptosign")
+    AUTHMETHOD_MAP["cryptosign"] = PendingAuthCryptosign

@@ -64,13 +64,14 @@ class Result(object):
 
 
 @click.command()
-@click.option("--host", help='Host address to test.')
-@click.option("--port", type=int, help='Post of the host to test.')
+@click.option("--host", help="Host address to test.")
+@click.option("--port", type=int, help="Post of the host to test.")
 def run(host, port):
 
     port = int(port)
 
     from . import interop_tests
+
     test_names = [x for x in dir(interop_tests) if x.startswith("test_")]
 
     tests = [getattr(interop_tests, test_name) for test_name in test_names]
@@ -82,8 +83,14 @@ def run(host, port):
 
     fmt_results = []
     for r in results:
-        fmt_results.append((r.name,
-                            "True" if r.success else "False", r.reason if r.reason else "", r.transcript))
+        fmt_results.append(
+            (
+                r.name,
+                "True" if r.success else "False",
+                r.reason if r.reason else "",
+                r.transcript,
+            )
+        )
 
     t = Texttable()
     t.set_cols_width([20, 10, 80, 60])
@@ -103,7 +110,6 @@ def run(host, port):
 
 
 class ReplayProtocol(Protocol):
-
     def __init__(self, factory):
         self.factory = factory
         self._record = deque(self.factory.record)
@@ -164,10 +170,18 @@ class ReplayProtocol(Protocol):
                 if len(self._record) > 0:
 
                     # Then if we are supposed to wait...
-                    if isinstance(self._record[0], Frame) and self._record[0].send is False and self._record[0].data == b"":
+                    if (
+                        isinstance(self._record[0], Frame)
+                        and self._record[0].send is False
+                        and self._record[0].data == b""
+                    ):
+
                         def wait():
                             self.dataReceived(b"")
-                        self._waiting_for_nothing = self.factory.reactor.callLater(2, wait)
+
+                        self._waiting_for_nothing = self.factory.reactor.callLater(
+                            2, wait
+                        )
                         return
 
     def connectionLost(self, reason):

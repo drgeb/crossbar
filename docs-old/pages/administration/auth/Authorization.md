@@ -79,7 +79,7 @@ For the above example client, the relevant part of the configuration would be:
                      "register": false,
                      "subscribe": true,
                      "publish": true
-                  }                  
+                  }
                }
             ]
          }
@@ -100,7 +100,7 @@ Each permission rule, like
       "register": false,
       "subscribe": true,
       "publish": false
-   }   
+   }
 }
 ```
 

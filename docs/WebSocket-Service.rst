@@ -106,4 +106,3 @@ include the path component. In the above, since the WebSocket transport
 runs on the path **/ws**, the correct URL is **ws://localhost:8080/ws**.
 A standalone WebSocket transport's URL would have used
 **ws://localhost:8080**.
-

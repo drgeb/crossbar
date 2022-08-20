@@ -36,12 +36,17 @@ from autobahn.wamp.exception import ApplicationError, TransportLost
 from autobahn.wamp.message import Goodbye
 from autobahn.wamp.component import _create_transport
 from autobahn.wamp.websocket import parseSubprotocolIdentifier
-from autobahn.wamp.websocket import WampWebSocketFactory  # just for protocol negotiation..
+from autobahn.wamp.websocket import (
+    WampWebSocketFactory,
+)  # just for protocol negotiation..
 from autobahn.twisted.wamp import Session
 from autobahn.twisted.resource import WebSocketResource
 from autobahn.twisted.websocket import WebSocketServerProtocol
 from autobahn.twisted.websocket import WebSocketServerFactory
-from autobahn.twisted.component import _create_transport_factory, _create_transport_endpoint
+from autobahn.twisted.component import (
+    _create_transport_factory,
+    _create_transport_endpoint,
+)
 
 from crossbar.node import worker
 from crossbar.worker.controller import WorkerController
@@ -49,15 +54,13 @@ from crossbar.worker.router import RouterController
 from crossbar.webservice.base import RouterWebService
 
 
-__all__ = (
-    'ProxyWorkerProcess',
-)
+__all__ = ("ProxyWorkerProcess",)
 
 
 class ProxyWorkerProcess(worker.NativeWorkerProcess):
 
-    TYPE = 'proxy'
-    LOGNAME = 'Proxy'
+    TYPE = "proxy"
+    LOGNAME = "Proxy"
 
 
 class BackendProxySession(Session):
@@ -235,7 +238,7 @@ class FrontendProxyProtocol(WebSocketServerProtocol):
                     self._backend_transport.send(msg)
             except Disconnected:
                 self.log.info(
-                    'Disconnected while trying to forward {msgs} messages',
+                    "Disconnected while trying to forward {msgs} messages",
                     msgs=len(messages),
                 )
 
@@ -299,10 +302,12 @@ class FrontendProxyProtocol(WebSocketServerProtocol):
                         x = orig(*args, **kw)
                         self._backend_transport.send(hello_msg)
                         return x
+
                     proto._on_handshake_complete = _connected
 
                     def _closed(*arg, **kw):
                         self.close()
+
                     proto.is_closed.addCallback(_closed)
 
                 # XXX websocket-specific
@@ -311,10 +316,12 @@ class FrontendProxyProtocol(WebSocketServerProtocol):
                     def _connected(arg):
                         self._backend_transport.send(hello_msg)
                         return arg
+
                     proto.is_open.addCallback(_connected)
 
                     def _closed(*arg, **kw):
                         self.close()
+
                     proto.is_closed.addCallback(_closed)
             else:
                 self._backend_transport.send(hello_msg)
@@ -323,6 +330,7 @@ class FrontendProxyProtocol(WebSocketServerProtocol):
             self._transport_d = None
             print("fail: {}".format(f))
             self._teardown()
+
         self._transport_d.addCallbacks(good, bad)
         return self._transport_d
 
@@ -333,6 +341,7 @@ class ProxyWebSocketService(RouterWebService):
     of these; it will start FrontendProxySession instances upon every client
     connection.
     """
+
     _backend_configs = None
 
     @staticmethod
@@ -345,14 +354,14 @@ class ProxyWebSocketService(RouterWebService):
         service = ProxyWebSocketService(transport, path, config, resource)
         websocket_factory._service = service
 
-        service._serializers = config.get('serializers', None)
+        service._serializers = config.get("serializers", None)
 
         # a proxy-transport must have at least one backend (fixme: checkconfig)
 
         for path, path_config in config.get("paths", dict()).items():
-            if path_config['type'] != 'websocket-proxy':
+            if path_config["type"] != "websocket-proxy":
                 continue
-            backends = path_config['backends']
+            backends = path_config["backends"]
             for backend in backends:
                 service.start_backend_for_path("/{}".format(path), backend)
 
@@ -371,13 +380,15 @@ class ProxyWebSocketService(RouterWebService):
         # all backends must have unique realms configured. there may
         # be a single default realm (i.e. no "realm" tag at all)
         for existing in path_backend:
-            if existing.get('realm', None) == config.get('realm', None):
+            if existing.get("realm", None) == config.get("realm", None):
                 # if the realm is None, there isn't one .. which means
                 # "default", but there can be only one default (per path)
-                if existing.get('realm', None) is None:
+                if existing.get("realm", None) is None:
                     raise ApplicationError(
                         "crossbar.error",
-                        "There can be only one default backend for path {}".format(path),
+                        "There can be only one default backend for path {}".format(
+                            path
+                        ),
                     )
 
         # XXX FIXME checkconfig
@@ -398,7 +409,7 @@ class ProxyWebSocketService(RouterWebService):
                 "crossbar.error",
                 "No backends at path '{}'".format(
                     request.path,
-                )
+                ),
             )
 
         backends = self._backend_configs[request.path]
@@ -415,14 +426,14 @@ class ProxyWebSocketService(RouterWebService):
                 "crossbar.error",
                 "No backend for realm '{}' (and no default backend)".format(
                     realm,
-                )
+                ),
             )
         return default_config
 
 
 class ProxyController(RouterController):
-    WORKER_TYPE = 'proxy'
-    WORKER_TITLE = 'WAMP proxy'
+    WORKER_TYPE = "proxy"
+    WORKER_TITLE = "WAMP proxy"
 
     def __init__(self, config=None, reactor=None, personality=None):
         super(ProxyController, self).__init__(
@@ -460,7 +471,7 @@ class ProxyController(RouterController):
             config=config,
         )
 
-        if config['type'] != "web":
+        if config["type"] != "web":
             raise RuntimeError("Only know about 'web' type services")
 
         # we remove "websocket-proxy" items from this config; only
@@ -471,38 +482,34 @@ class ProxyController(RouterController):
             """
             remove any 'websocket-proxy' type configs
             """
-            return {
-                k: v
-                for k, v in paths.items()
-                if v['type'] != "websocket-proxy"
-            }
+            return {k: v for k, v in paths.items() if v["type"] != "websocket-proxy"}
 
         config_prime = dict()
         for k, v in config.items():
-            if k == 'paths':
+            if k == "paths":
                 config_prime[k] = filter_paths(v)
             else:
                 config_prime[k] = v
 
-        yield self.start_router_transport(transport_id, config_prime, create_paths=False)
+        yield self.start_router_transport(
+            transport_id, config_prime, create_paths=False
+        )
 
-        for path, path_config in config['paths'].items():
-            if path_config['type'] == "websocket-proxy":
+        for path, path_config in config["paths"].items():
+            if path_config["type"] == "websocket-proxy":
                 # XXX okay this is where we "actually" want to start a
                 # proxy worker .. which just shovels bytes to the
                 # "backend". Are we assured exactly one backend? (At
                 # this point, we have to assume yes I think)
-                transport = self.transports[transport_id]  # should always exist now .. right?
+                transport = self.transports[
+                    transport_id
+                ]  # should always exist now .. right?
                 webservice = yield maybeDeferred(
                     ProxyWebSocketService.create, transport, path, config, self
                 )
                 transport.root[path] = webservice
             else:
-                yield self.start_web_transport_service(
-                    transport_id,
-                    path,
-                    path_config
-                )
+                yield self.start_web_transport_service(transport_id, path, path_config)
 
     @wamp.register(None)
     @inlineCallbacks

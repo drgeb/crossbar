@@ -50,9 +50,7 @@ class AppSessionLoaderTests(TestCase):
         with self.assertRaises(ApplicationError) as e:
             _appsession_loader(config)
 
-        self.assertIn(
-            ("invalid component type 'kjdfgdbfls'"),
-            str(e.exception.args[0]))
+        self.assertIn(("invalid component type 'kjdfgdbfls'"), str(e.exception.args[0]))
 
     def test_class_standard(self):
         """
@@ -60,12 +58,13 @@ class AppSessionLoaderTests(TestCase):
         """
         config = {
             "type": "class",
-            "classname": "crossbar.worker.test.examples.goodclass.AppSession"
+            "classname": "crossbar.worker.test.examples.goodclass.AppSession",
         }
 
         klass = _appsession_loader(config)
 
         from .examples.goodclass import AppSession
+
         self.assertIs(klass, AppSession)
 
     def test_class_non_applicationsession(self):
@@ -74,15 +73,15 @@ class AppSessionLoaderTests(TestCase):
         """
         config = {
             "type": "class",
-            "classname": "crossbar.worker.test.examples.badclass.AppSession"
+            "classname": "crossbar.worker.test.examples.badclass.AppSession",
         }
 
         with self.assertRaises(ApplicationError) as e:
             _appsession_loader(config)
 
         self.assertIn(
-            ("session not derived of ApplicationSession"),
-            str(e.exception.args[0]))
+            ("session not derived of ApplicationSession"), str(e.exception.args[0])
+        )
 
     def test_class_importerror(self):
         """
@@ -91,19 +90,22 @@ class AppSessionLoaderTests(TestCase):
         """
         config = {
             "type": "class",
-            "classname": "crossbar.worker.test.examples.importerror.AppSession"
+            "classname": "crossbar.worker.test.examples.importerror.AppSession",
         }
 
         with self.assertRaises(ApplicationError) as e:
             _appsession_loader(config)
 
         self.assertIn(
-            ("Failed to import class 'crossbar.worker.test.examples.importerr"
-             "or.AppSession'"),
-            str(e.exception.args[0]))
+            (
+                "Failed to import class 'crossbar.worker.test.examples.importerr"
+                "or.AppSession'"
+            ),
+            str(e.exception.args[0]),
+        )
 
         s = str(e.exception.args[0])
-        self.assertTrue('ImportError' in s or 'ModuleNotFoundError' in s)
+        self.assertTrue("ImportError" in s or "ModuleNotFoundError" in s)
 
     def test_class_syntaxerror(self):
         """
@@ -111,16 +113,17 @@ class AppSessionLoaderTests(TestCase):
         """
         config = {
             "type": "class",
-            "classname": "crossbar.worker.test.examples.syntaxerror.AppSession"
+            "classname": "crossbar.worker.test.examples.syntaxerror.AppSession",
         }
 
         with self.assertRaises(ApplicationError) as e:
             _appsession_loader(config)
 
         self.assertIn(
-            ("Failed to import class 'crossbar.worker.test.examples.syntaxerr"
-             "or.AppSession'"),
-            str(e.exception.args[0]))
-        self.assertIn(
-            ("SyntaxError"),
-            str(e.exception.args[0]))
+            (
+                "Failed to import class 'crossbar.worker.test.examples.syntaxerr"
+                "or.AppSession'"
+            ),
+            str(e.exception.args[0]),
+        )
+        self.assertIn(("SyntaxError"), str(e.exception.args[0]))

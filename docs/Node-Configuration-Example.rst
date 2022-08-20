@@ -31,7 +31,7 @@ Programming pros:
 
 Programming cons:
 	In contrast to a router component, you have to assign the role of a container component for the transport that the component connects to (eg. websocket). You do this explicitly in the python code of the container component, or through environment variables accessed by the component on startup. Each container component class must also include explicit onConnect and onChallenge definitions to set the authentication method for the user and role, even if that role is "anonymous".
-	
+
 At least that's how it works currently with Crossbar.io v19.11.2. Making it a little more confusing, the above doesn't apply when you use TLS explicit authentication discussed elsewhere. The docs and older online examples show a container component example without the onConnect and onChallenge defs...but that example uses TLS, the exception to the exception!
 
 The requirement for the two defs may disappear in a future version of Crossbar.io. Read on and the following example will make it all clear.
@@ -304,7 +304,7 @@ authenticator.py
                                     except Exception as e:
                                         prCyan("Failed to register dynamic authenticator: {0}".format(e))
 
- 
+
 balloon.py
 ----------
 
@@ -385,7 +385,7 @@ balloon.py
                                         #self.log.info("procedure pop registered")
                                     except Exception as e:
                                         prCyan("could not register procedure: {}".format(e))
-					
+
 
 index.html
 ----------

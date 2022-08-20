@@ -53,4 +53,3 @@ There are valid values for the ``type`` of worker:
 -  ``"container"`` - see :doc:`Container
    Configuration <Container-Configuration>`
 -  ``"guest"`` - see :doc:`Guest Configuration <Guest-Configuration>`
-

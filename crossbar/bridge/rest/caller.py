@@ -35,7 +35,7 @@ from autobahn.wamp.types import CallResult
 from crossbar._util import dump_json
 from crossbar.bridge.rest.common import _CommonResource
 
-__all__ = ('CallerResource',)
+__all__ = ("CallerResource",)
 
 
 class CallerResource(_CommonResource):
@@ -45,16 +45,15 @@ class CallerResource(_CommonResource):
 
     def _process(self, request, event):
 
-        if 'procedure' not in event:
+        if "procedure" not in event:
             return self._deny_request(
-                request, 400,
-                key='procedure',
-                log_category="AR455")
+                request, 400, key="procedure", log_category="AR455"
+            )
 
-        procedure = event.pop('procedure')
+        procedure = event.pop("procedure")
 
-        args = event['args'] if 'args' in event and event['args'] else []
-        kwargs = event['kwargs'] if 'kwargs' in event and event['kwargs'] else {}
+        args = event["args"] if "args" in event and event["args"] else []
+        kwargs = event["kwargs"] if "kwargs" in event and event["kwargs"] else {}
 
         def _call(*args, **kwargs):
             return self._session.call(*args, **kwargs)
@@ -68,23 +67,20 @@ class CallerResource(_CommonResource):
             if isinstance(value, CallResult):
                 res = {}
                 if value.results:
-                    res['args'] = value.results
+                    res["args"] = value.results
                 if value.kwresults:
-                    res['kwargs'] = value.kwresults
+                    res["kwargs"] = value.kwresults
             else:
-                res = {'args': [value]}
+                res = {"args": [value]}
 
-            body = dump_json(res, True).encode('utf8')
+            body = dump_json(res, True).encode("utf8")
 
-            return self._complete_request(
-                request, 200, body,
-                log_category="AR202")
+            return self._complete_request(request, 200, body, log_category="AR202")
 
         def on_call_error(err):
             # a WAMP procedure call returning with error should be forwarded
             # to the HTTP-requestor still successfully
             #
-            return self._fail_request(request, failure=err,
-                                      log_category="AR458")
+            return self._fail_request(request, failure=err, log_category="AR458")
 
         return d.addCallbacks(on_call_ok, on_call_error)

@@ -49,7 +49,7 @@ Check the log output in the terminals to see what is happening and how things ch
 
 ## How to start
 
-> An alternative for running Crossbar.io without Docker is **installation into a dedicated Python**, see [our instructions](/docs/Installation/). 
+> An alternative for running Crossbar.io without Docker is **installation into a dedicated Python**, see [our instructions](/docs/Installation/).
 
 You need Docker installed ([Docker installation instructions](https://docs.docker.com/engine/installation/)).
 
@@ -101,7 +101,7 @@ This should give you output like this:
 
 [![asciicast](https://asciinema.org/a/5bd3oco61umd4to8qxfixzbh4.png)](https://asciinema.org/a/5bd3oco61umd4to8qxfixzbh4)
 
-> This uses the latest [autobahn-js](https://hub.docker.com/r/crossbario/autobahn-js/) Docker image for x86 architecture, which is build from [this Docker file](https://github.com/crossbario/crossbar-docker/blob/master/autobahn-js/x86_64/Dockerfile.alpine).     
+> This uses the latest [autobahn-js](https://hub.docker.com/r/crossbario/autobahn-js/) Docker image for x86 architecture, which is build from [this Docker file](https://github.com/crossbario/crossbar-docker/blob/master/autobahn-js/x86_64/Dockerfile.alpine).
 You can start the container on ARM (v7) and ARM64 with `make start_armhf` and `make start_aarch64` respectively.
 
 ### Autobahn|Python
@@ -117,8 +117,8 @@ This should give you output like this:
 
 [![asciicast](https://asciinema.org/a/a4d35xf82ylibi0jqwfje56b0.png)](https://asciinema.org/a/a4d35xf82ylibi0jqwfje56b0)
 
-> This uses the latest [autobahn-python](https://hub.docker.com/r/crossbario/autobahn-python/) Docker image for x86 architecture, which is build from [this Docker file](https://github.com/crossbario/crossbar-docker/blob/master/autobahn-python/x86_64/Dockerfile.cpy3-alpine).     
-You can start the container on ARM (v7) and ARM64 with `make start_armhf` and `start_aarch64` respectively.     
+> This uses the latest [autobahn-python](https://hub.docker.com/r/crossbario/autobahn-python/) Docker image for x86 architecture, which is build from [this Docker file](https://github.com/crossbario/crossbar-docker/blob/master/autobahn-python/x86_64/Dockerfile.cpy3-alpine).
+You can start the container on ARM (v7) and ARM64 with `make start_armhf` and `start_aarch64` respectively.
 
 > Autobahn|Python components can be written using either Python 2.7 or >=3.5. They can use  the Twisted framework or, for Python >=3.5, the integrated asyncio. There are images to cover all of these variations. The default image is for Python 3 and supports both variants, but only the code using Twisted is run (you can change this in `app/run`).
 
@@ -137,7 +137,7 @@ This should give you output like this:
 
 [![asciicast](https://asciinema.org/a/aqpejunlkxbk8o4iuaz1lm9x8.png)](https://asciinema.org/a/aqpejunlkxbk8o4iuaz1lm9x8)
 
-> This uses the latest [autobahn-python](https://hub.docker.com/r/crossbario/autobahn-cpp/) Docker image for x86 architecture, which is build from [this Docker file](https://github.com/crossbario/crossbar-docker/blob/master/autobahn-cpp/x86_64/Dockerfile.gcc).     
+> This uses the latest [autobahn-python](https://hub.docker.com/r/crossbario/autobahn-cpp/) Docker image for x86 architecture, which is build from [this Docker file](https://github.com/crossbario/crossbar-docker/blob/master/autobahn-cpp/x86_64/Dockerfile.gcc).
 You can start the container on ARM (v7) and ARM64 with `make build_armhf` & `make start_armhf` and `start_aarch64` & `make start_aarch64` respectively.
 
 

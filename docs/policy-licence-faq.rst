@@ -2,7 +2,5 @@
 
 .. _policy-license-faq:
 
-Policy, Licensing and FAQ 
+Policy, Licensing and FAQ
 =========================
-
-

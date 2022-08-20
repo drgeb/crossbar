@@ -41,28 +41,32 @@ from twisted.python.runtime import platformType
 # DragonFly BSD does.
 _HAS_SHARED_LOADBALANCED_SOCKET = False
 
-if sys.platform.startswith('linux'):
+if sys.platform.startswith("linux"):
     try:
         # get Linux kernel version, like: (3, 19)
-        _LINUX_KERNEL_VERSION = [int(x) for x in tuple(platform.uname()[2].split('.')[:2])]
+        _LINUX_KERNEL_VERSION = [
+            int(x) for x in tuple(platform.uname()[2].split(".")[:2])
+        ]
 
         # SO_REUSEPORT only supported for Linux kernels >= 3.9
-        if (_LINUX_KERNEL_VERSION[0] == 3 and _LINUX_KERNEL_VERSION[1] >= 9) or _LINUX_KERNEL_VERSION[0] >= 4:
+        if (
+            _LINUX_KERNEL_VERSION[0] == 3 and _LINUX_KERNEL_VERSION[1] >= 9
+        ) or _LINUX_KERNEL_VERSION[0] >= 4:
             _HAS_SHARED_LOADBALANCED_SOCKET = True
 
             # monkey patch missing constant if needed
-            if not hasattr(socket, 'SO_REUSEPORT'):
+            if not hasattr(socket, "SO_REUSEPORT"):
                 socket.SO_REUSEPORT = 15
     except:
         pass
 
-elif sys.platform == 'win32':
+elif sys.platform == "win32":
     # http://stackoverflow.com/questions/14388706/socket-options-so-reuseaddr-and-so-reuseport-how-do-they-differ-do-they-mean-t/14388707#14388707
     _HAS_SHARED_LOADBALANCED_SOCKET = True
 
 # FIXME: DragonFly BSD claims support: http://lists.dragonflybsd.org/pipermail/commits/2013-May/130083.html
 
-__all__ = ('create_stream_socket', 'SharedPort', 'SharedTLSPort')
+__all__ = ("create_stream_socket", "SharedPort", "SharedTLSPort")
 
 
 def create_stream_socket(addressFamily, shared=False):
@@ -88,9 +92,9 @@ def create_stream_socket(addressFamily, shared=False):
             raise Exception("shared sockets are only supported for IPv4 and IPv6")
 
         if _HAS_SHARED_LOADBALANCED_SOCKET:
-            if sys.platform.startswith('linux'):
+            if sys.platform.startswith("linux"):
                 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-            elif sys.platform == 'win32':
+            elif sys.platform == "win32":
                 # http://stackoverflow.com/questions/14388706/socket-options-so-reuseaddr-and-so-reuseport-how-do-they-differ-do-they-mean-t/14388707#14388707
                 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 # s.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
@@ -107,7 +111,9 @@ class SharedPort(tcp.Port):
     A custom TCP port which allows to set socket options for sharing TCP ports between multiple processes.
     """
 
-    def __init__(self, port, factory, backlog=50, interface='', reactor=None, shared=False):
+    def __init__(
+        self, port, factory, backlog=50, interface="", reactor=None, shared=False
+    ):
         if shared and not _HAS_SHARED_LOADBALANCED_SOCKET:
             raise Exception("shared sockets unsupported on this system")
         else:
@@ -119,9 +125,9 @@ class SharedPort(tcp.Port):
         s = tcp.Port.createInternetSocket(self)
         if self._shared:
             if _HAS_SHARED_LOADBALANCED_SOCKET:
-                if sys.platform.startswith('linux'):
+                if sys.platform.startswith("linux"):
                     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-                elif sys.platform == 'win32':
+                elif sys.platform == "win32":
                     # http://stackoverflow.com/questions/14388706/socket-options-so-reuseaddr-and-so-reuseport-how-do-they-differ-do-they-mean-t/14388707#14388707
                     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                     # s.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
@@ -137,7 +143,16 @@ class SharedTLSPort(SharedPort, ssl.Port):
     A custom TLS port which allows to set socket options for sharing (the underlying) TCP ports between multiple processes.
     """
 
-    def __init__(self, port, factory, ctxFactory, backlog=50, interface='', reactor=None, shared=False):
+    def __init__(
+        self,
+        port,
+        factory,
+        ctxFactory,
+        backlog=50,
+        interface="",
+        reactor=None,
+        shared=False,
+    ):
         if shared and not _HAS_SHARED_LOADBALANCED_SOCKET:
             raise Exception("shared sockets unsupported on this system")
         else:

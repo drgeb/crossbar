@@ -52,7 +52,7 @@ from crossbar.common.process import NativeProcess
 from crossbar.common.profiler import PROFILERS
 from crossbar.common.key import _read_node_key, _read_release_key
 
-__all__ = ('WorkerController',)
+__all__ = ("WorkerController",)
 
 
 class WorkerController(NativeProcess):
@@ -63,20 +63,24 @@ class WorkerController(NativeProcess):
     via WAMP-over-stdio.
     """
 
-    WORKER_TYPE = 'native'
+    WORKER_TYPE = "native"
 
     log = make_logger()
 
     def __init__(self, config=None, reactor=None, personality=None):
         # base ctor
-        NativeProcess.__init__(self, config=config, reactor=reactor, personality=personality)
+        NativeProcess.__init__(
+            self, config=config, reactor=reactor, personality=personality
+        )
 
         # Release (public) key
         self._release_pubkey = _read_release_key()
 
         # Node (private) key (as a string, in hex)
-        node_key_hex = _read_node_key(self.config.extra.cbdir, private=True)['hex']
-        privkey = nacl.signing.SigningKey(node_key_hex, encoder=nacl.encoding.HexEncoder)
+        node_key_hex = _read_node_key(self.config.extra.cbdir, private=True)["hex"]
+        privkey = nacl.signing.SigningKey(
+            node_key_hex, encoder=nacl.encoding.HexEncoder
+        )
 
         # WAMP-cryptosign signing key
         self._node_key = cryptosign.SigningKey(privkey)
@@ -98,11 +102,16 @@ class WorkerController(NativeProcess):
         #
         template_dirs = []
         for package, directory in self.personality.TEMPLATE_DIRS:
-            dir_path = os.path.abspath(pkg_resources.resource_filename(package, directory))
+            dir_path = os.path.abspath(
+                pkg_resources.resource_filename(package, directory)
+            )
             template_dirs.append(dir_path)
-        self.log.debug("Using Web templates from {template_dirs}",
-                       template_dirs=template_dirs)
-        self._templates = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dirs), autoescape=True)
+        self.log.debug(
+            "Using Web templates from {template_dirs}", template_dirs=template_dirs
+        )
+        self._templates = jinja2.Environment(
+            loader=jinja2.FileSystemLoader(template_dirs), autoescape=True
+        )
 
         self.join(self.config.realm)
 
@@ -125,6 +134,7 @@ class WorkerController(NativeProcess):
         def shutdown(sig, frame):
             self.log.warn("Native worker received SIGTERM - shutting down ..")
             self.shutdown()
+
         signal.signal(signal.SIGTERM, shutdown)
 
         # the worker is ready for work!
@@ -150,17 +160,20 @@ class WorkerController(NativeProcess):
         # will either be sequenced from the local node configuration file or remotely
         # from a management service
         yield self.publish(
-            '{}.on_worker_ready'.format(self._uri_prefix),
+            "{}.on_worker_ready".format(self._uri_prefix),
             {
-                'type': self.WORKER_TYPE,
-                'id': self.config.extra.worker,
-                'pid': os.getpid(),
+                "type": self.WORKER_TYPE,
+                "id": self.config.extra.worker,
+                "pid": os.getpid(),
             },
-            options=PublishOptions(acknowledge=True)
+            options=PublishOptions(acknowledge=True),
         )
 
-        self.log.debug("Worker '{worker}' running as PID {pid}",
-                       worker=self.config.extra.worker, pid=os.getpid())
+        self.log.debug(
+            "Worker '{worker}' running as PID {pid}",
+            worker=self.config.extra.worker,
+            pid=os.getpid(),
+        )
 
     @wamp.register(None)
     @inlineCallbacks
@@ -181,12 +194,11 @@ class WorkerController(NativeProcess):
         # publish management API event
         #
         yield self.publish(
-            '{}.on_shutdown_requested'.format(self._uri_prefix),
-            {
-                'who': details.caller if details else None,
-                'when': utcnow()
-            },
-            options=PublishOptions(exclude=details.caller if details else None, acknowledge=True)
+            "{}.on_shutdown_requested".format(self._uri_prefix),
+            {"who": details.caller if details else None, "when": utcnow()},
+            options=PublishOptions(
+                exclude=details.caller if details else None, acknowledge=True
+            ),
         )
 
         # we now call self.leave() to initiate the clean, orderly shutdown of the native worker.
@@ -219,7 +231,9 @@ class WorkerController(NativeProcess):
         return [p.marshal() for p in PROFILERS.items()]
 
     @wamp.register(None)
-    def start_profiler(self, profiler='vmprof', runtime=10, start_async=True, details=None):
+    def start_profiler(
+        self, profiler="vmprof", runtime=10, start_async=True, details=None
+    ):
         """
         Registered under: ``crossbar.worker.<worker_id>.start_profiler``
 
@@ -247,14 +261,18 @@ class WorkerController(NativeProcess):
 
         profiler = PROFILERS[profiler]
 
-        self.log.debug("Starting profiler {profiler}, running for {secs} seconds", profiler=profiler, secs=runtime)
+        self.log.debug(
+            "Starting profiler {profiler}, running for {secs} seconds",
+            profiler=profiler,
+            secs=runtime,
+        )
 
         # run the selected profiler, producing a profile. "profile_finished" is a Deferred
         # that will fire with the actual profile recorded
         profile_id, profile_finished = profiler.start(runtime=runtime)
 
-        on_profile_started = '{}.on_profile_started'.format(self._uri_prefix)
-        on_profile_finished = '{}.on_profile_finished'.format(self._uri_prefix)
+        on_profile_started = "{}.on_profile_started".format(self._uri_prefix)
+        on_profile_finished = "{}.on_profile_finished".format(self._uri_prefix)
 
         if start_async:
             publish_options = None
@@ -262,50 +280,38 @@ class WorkerController(NativeProcess):
             publish_options = PublishOptions(exclude=details.caller)
 
         profile_started = {
-            'id': profile_id,
-            'who': details.caller,
-            'profiler': profiler,
-            'runtime': runtime,
-            'async': start_async,
+            "id": profile_id,
+            "who": details.caller,
+            "profiler": profiler,
+            "runtime": runtime,
+            "async": start_async,
         }
 
-        self.publish(
-            on_profile_started,
-            profile_started,
-            options=publish_options
-        )
+        self.publish(on_profile_started, profile_started, options=publish_options)
 
         def on_profile_success(profile_result):
             self._profiles[profile_id] = {
-                'id': profile_id,
-                'profiler': profiler,
-                'runtime': runtime,
-                'profile': profile_result
+                "id": profile_id,
+                "profiler": profiler,
+                "runtime": runtime,
+                "profile": profile_result,
             }
 
             self.publish(
                 on_profile_finished,
-                {
-                    'id': profile_id,
-                    'error': None,
-                    'profile': profile_result
-                },
-                options=publish_options
+                {"id": profile_id, "error": None, "profile": profile_result},
+                options=publish_options,
             )
 
             return profile_result
 
         def on_profile_failed(error):
-            self.log.warn('profiling failed: {error}', error=error)
+            self.log.warn("profiling failed: {error}", error=error)
 
             self.publish(
                 on_profile_finished,
-                {
-                    'id': profile_id,
-                    'error': '{0}'.format(error),
-                    'profile': None
-                },
-                options=publish_options
+                {"id": profile_id, "error": "{0}".format(error), "profile": None},
+                options=publish_options,
             )
 
             return error
@@ -335,7 +341,10 @@ class WorkerController(NativeProcess):
         if profile_id in self._profiles:
             return self._profiles[profile_id]
         else:
-            raise ApplicationError('crossbar.error.no_such_object', 'no profile with ID {} saved'.format(profile_id))
+            raise ApplicationError(
+                "crossbar.error.no_such_object",
+                "no profile with ID {} saved".format(profile_id),
+            )
 
     @wamp.register(None)
     def get_pythonpath(self, details=None):
@@ -374,15 +383,22 @@ class WorkerController(NativeProcess):
             #
             path_to_add = os.path.abspath(os.path.join(self.config.extra.cbdir, p))
             if os.path.isdir(path_to_add):
-                paths_added.append({'requested': p, 'resolved': path_to_add})
+                paths_added.append({"requested": p, "resolved": path_to_add})
             else:
-                emsg = "Cannot add Python search path '{}': resolved path '{}' is not a directory".format(p, path_to_add)
+                emsg = "Cannot add Python search path '{}': resolved path '{}' is not a directory".format(
+                    p, path_to_add
+                )
                 self.log.error(emsg)
-                raise ApplicationError('crossbar.error.invalid_argument', emsg, requested=p, resolved=path_to_add)
+                raise ApplicationError(
+                    "crossbar.error.invalid_argument",
+                    emsg,
+                    requested=p,
+                    resolved=path_to_add,
+                )
 
         # now extend python module search path
         #
-        paths_added_resolved = [p['resolved'] for p in paths_added]
+        paths_added_resolved = [p["resolved"] for p in paths_added]
         if prepend:
             sys.path = paths_added_resolved + sys.path
         else:
@@ -400,12 +416,12 @@ class WorkerController(NativeProcess):
 
         # publish event "on_pythonpath_add" to all but the caller
         #
-        topic = '{}.on_pythonpath_add'.format(self._uri_prefix)
+        topic = "{}.on_pythonpath_add".format(self._uri_prefix)
         res = {
-            'paths': sys.path,
-            'paths_added': paths_added,
-            'prepend': prepend,
-            'who': details.caller
+            "paths": sys.path,
+            "paths_added": paths_added,
+            "prepend": prepend,
+            "who": details.caller,
         }
         self.publish(topic, res, options=PublishOptions(exclude=details.caller))
 

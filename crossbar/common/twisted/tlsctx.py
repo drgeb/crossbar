@@ -50,15 +50,17 @@ SSL.OP_NO_TLSv1 = 0x04000000
 SSL.OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION = 0x00010000
 SSL.OP_NO_TICKET = 0x00004000
 
-SSL_DEFAULT_OPTIONS = SSL.OP_NO_SSLv2 | \
-    SSL.OP_NO_SSLv3 | \
-    SSL.OP_NO_COMPRESSION | \
-    SSL.OP_CIPHER_SERVER_PREFERENCE | \
-    SSL.OP_SINGLE_ECDH_USE | \
-    SSL.OP_SINGLE_DH_USE | \
-    SSL.OP_DONT_INSERT_EMPTY_FRAGMENTS | \
-    SSL.OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION | \
-    SSL.OP_NO_TICKET
+SSL_DEFAULT_OPTIONS = (
+    SSL.OP_NO_SSLv2
+    | SSL.OP_NO_SSLv3
+    | SSL.OP_NO_COMPRESSION
+    | SSL.OP_CIPHER_SERVER_PREFERENCE
+    | SSL.OP_SINGLE_ECDH_USE
+    | SSL.OP_SINGLE_DH_USE
+    | SSL.OP_DONT_INSERT_EMPTY_FRAGMENTS
+    | SSL.OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION
+    | SSL.OP_NO_TICKET
+)
 
 # List of available ciphers
 #
@@ -75,7 +77,7 @@ SSL_DEFAULT_OPTIONS = SSL.OP_NO_SSLv2 | \
 # We don't use AES256 and SHA384, to reduce number of ciphers and since the additional security gain seems
 # to worth the additional performance drain.
 #
-SSL_DEFAULT_CIPHERS = 'ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:DHE-RSA-AES128-SHA'
+SSL_DEFAULT_CIPHERS = "ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:DHE-RSA-AES128-SHA"
 # SSL_DEFAULT_CIPHERS = 'AES128-GCM-SHA256'
 
 # Resorted to prioritize ECDH (hence favor performance over cipher strength) - no gain in practice, that doesn't
@@ -193,14 +195,13 @@ ELLIPTIC_CURVES = {
     SSL.SN_X9_62_c2tnb359v1: SSL.NID_X9_62_c2tnb359v1,
     SSL.SN_X9_62_c2pnb368w1: SSL.NID_X9_62_c2pnb368w1,
     SSL.SN_X9_62_c2tnb431r1: SSL.NID_X9_62_c2tnb431r1,
-
     SSL.SN_X9_62_prime192v1: SSL.NID_X9_62_prime192v1,
     SSL.SN_X9_62_prime192v2: SSL.NID_X9_62_prime192v2,
     SSL.SN_X9_62_prime192v3: SSL.NID_X9_62_prime192v3,
     SSL.SN_X9_62_prime239v1: SSL.NID_X9_62_prime239v1,
     SSL.SN_X9_62_prime239v2: SSL.NID_X9_62_prime239v2,
     SSL.SN_X9_62_prime239v3: SSL.NID_X9_62_prime239v3,
-    SSL.SN_X9_62_prime256v1: SSL.NID_X9_62_prime256v1
+    SSL.SN_X9_62_prime256v1: SSL.NID_X9_62_prime256v1,
 }
 
 # prime256v1: X9.62/SECG curve over a 256 bit prime field
@@ -248,15 +249,17 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
 
     log = make_logger()
 
-    def __init__(self,
-                 privateKeyString,
-                 certificateString,
-                 chainedCertificate=True,
-                 dhParamFilename=None,
-                 ciphers=None,
-                 ca_certs=[]):
-        self._privateKeyString = str(privateKeyString).encode('utf8')
-        self._certificateString = str(certificateString).encode('utf8')
+    def __init__(
+        self,
+        privateKeyString,
+        certificateString,
+        chainedCertificate=True,
+        dhParamFilename=None,
+        ciphers=None,
+        ca_certs=[],
+    ):
+        self._privateKeyString = str(privateKeyString).encode("utf8")
+        self._certificateString = str(certificateString).encode("utf8")
         self._chainedCertificate = chainedCertificate
         self._dhParamFilename = str(dhParamFilename) if dhParamFilename else None
         self._ciphers = str(ciphers) if ciphers else None
@@ -312,9 +315,13 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
                 try:
                     ctx.load_tmp_dh(self._dhParamFilename)
                 except Exception:
-                    self.log.failure("Error: OpenSSL DH modes not active - failed to load DH parameter file [{log_failure}]")
+                    self.log.failure(
+                        "Error: OpenSSL DH modes not active - failed to load DH parameter file [{log_failure}]"
+                    )
                 else:
-                    self.log.info("Ok, OpenSSL Diffie-Hellman ciphers parameter file loaded.")
+                    self.log.info(
+                        "Ok, OpenSSL Diffie-Hellman ciphers parameter file loaded."
+                    )
             else:
                 self.log.warn("OpenSSL DH modes not active - missing DH param file")
 
@@ -330,15 +337,21 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
                 curve = crypto.get_elliptic_curve(ECDH_DEFAULT_CURVE_NAME)
                 ctx.set_tmp_ecdh(curve)
             except Exception:
-                self.log.failure("Warning: OpenSSL failed to set ECDH default curve [{log_failure}]")
+                self.log.failure(
+                    "Warning: OpenSSL failed to set ECDH default curve [{log_failure}]"
+                )
             else:
-                self.log.info("Ok, OpenSSL is using ECDH elliptic curve {curve}",
-                              curve=ECDH_DEFAULT_CURVE_NAME)
+                self.log.info(
+                    "Ok, OpenSSL is using ECDH elliptic curve {curve}",
+                    curve=ECDH_DEFAULT_CURVE_NAME,
+                )
 
             # load certificate (chain) into context
             #
             if not self._chainedCertificate:
-                cert = crypto.load_certificate(crypto.FILETYPE_PEM, self._certificateString)
+                cert = crypto.load_certificate(
+                    crypto.FILETYPE_PEM, self._certificateString
+                )
                 ctx.use_certificate(cert)
             else:
                 # http://pyopenssl.sourceforge.net/pyOpenSSL.html/openssl-context.html
@@ -352,7 +365,9 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
             store = ctx.get_cert_store()
             for cert in self._ca_certs:
                 store.add_cert(cert.original)
-            ctx.set_verify(SSL.VERIFY_PEER | SSL.VERIFY_FAIL_IF_NO_PEER_CERT, self._verify_peer)
+            ctx.set_verify(
+                SSL.VERIFY_PEER | SSL.VERIFY_FAIL_IF_NO_PEER_CERT, self._verify_peer
+            )
 
             # load private key into context
             #

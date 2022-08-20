@@ -39,7 +39,6 @@ from crossbar.bridge.rest import MessageForwarder
 
 
 class MessageForwarderTestCase(TestCase):
-
     @inlineCallbacks
     def test_basic_web(self):
         """
@@ -47,10 +46,7 @@ class MessageForwarderTestCase(TestCase):
         """
         extra = {
             "subscriptions": [
-                {
-                    "url": "https://foo.com/msg",
-                    "topic": "io.crossbar.forward1"
-                }
+                {"url": "https://foo.com/msg", "topic": "io.crossbar.forward1"}
             ]
         }
         config = ComponentConfig(realm="realm1", extra=extra)
@@ -61,12 +57,16 @@ class MessageForwarderTestCase(TestCase):
         c = MessageForwarder(config=config, webTransport=m)
         MockTransport(c)
 
-        res = yield c.publish("io.crossbar.forward1", "hi",
-                              options=PublishOptions(acknowledge=True))
+        res = yield c.publish(
+            "io.crossbar.forward1", "hi", options=PublishOptions(acknowledge=True)
+        )
 
         self.assertNotEqual(res.id, None)
         self.assertEqual(m.maderequest["args"], ("POST", b"https://foo.com/msg"))
-        self.assertEqual(m.maderequest["kwargs"], {
-            "data": b'{"args":["hi"],"kwargs":{}}',
-            "headers": Headers({b"Content-Type": [b"application/json"]})
-        })
+        self.assertEqual(
+            m.maderequest["kwargs"],
+            {
+                "data": b'{"args":["hi"],"kwargs":{}}',
+                "headers": Headers({b"Content-Type": [b"application/json"]}),
+            },
+        )

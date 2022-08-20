@@ -176,4 +176,3 @@ In above example, the cookie store would reside in
     Note that the cookie file is "growing forever". There is no purging
     whatsoever, as the file is written append-only. The LMDB cookie
     store will provide a more advanced store.
-

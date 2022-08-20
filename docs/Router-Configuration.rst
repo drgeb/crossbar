@@ -40,14 +40,14 @@ Worker*, process of ``type == "router"``:
 For the available ``options`` with *Routers*, please see
 
 -  :doc:`Native Worker Options <Native-Worker-Options>`
--  :doc:`Process Environments <Process-Environments>` 
+-  :doc:`Process Environments <Process-Environments>`
 
 For configuration of ``realms``, ``transports`` and ``components``, have
 a look here
 
 -  :doc:`Router Realms <Router-Realms>`
--  :doc:`Router Transports <Router-Transports>` 
--  :doc:`Router Components <Router-Components>` 
+-  :doc:`Router Transports <Router-Transports>`
+-  :doc:`Router Components <Router-Components>`
 
 Configuration
 -------------

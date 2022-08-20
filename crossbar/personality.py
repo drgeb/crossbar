@@ -32,19 +32,33 @@ import time
 from collections.abc import Mapping
 
 import txaio
+
 txaio.use_twisted()
 
 import crossbar
 from crossbar.common import checkconfig
 from crossbar.node import node
-from crossbar.node.worker import RouterWorkerProcess, ContainerWorkerProcess, WebSocketTesteeWorkerProcess
+from crossbar.node.worker import (
+    RouterWorkerProcess,
+    ContainerWorkerProcess,
+    WebSocketTesteeWorkerProcess,
+)
 from crossbar.worker.router import RouterController
 from crossbar.worker import transport
 from crossbar.worker.container import ContainerController
 from crossbar.worker.testee import WebSocketTesteeController
 from crossbar.worker.proxy import ProxyController, ProxyWorkerProcess
 from crossbar.webservice import base
-from crossbar.webservice import wsgi, rest, longpoll, websocket, misc, static, archive, wap
+from crossbar.webservice import (
+    wsgi,
+    rest,
+    longpoll,
+    websocket,
+    misc,
+    static,
+    archive,
+    wap,
+)
 from crossbar.router.realmstore import MemoryRealmStore
 
 
@@ -58,68 +72,58 @@ def _check_proxy_config(personality, config):
 
 def default_native_workers():
     factory = dict()
-    factory['router'] = {
-        'class': RouterWorkerProcess,
-        'worker_class': RouterController,
-
+    factory["router"] = {
+        "class": RouterWorkerProcess,
+        "worker_class": RouterController,
         # check a whole router worker configuration item (including realms, transports, ..)
-        'checkconfig_item': checkconfig.check_router,
-
+        "checkconfig_item": checkconfig.check_router,
         # only check router worker options
-        'checkconfig_options': checkconfig.check_router_options,
-
-        'logname': 'Router',
-        'topics': {
-            'starting': 'crossbar.on_router_starting',
-            'started': 'crossbar.on_router_started',
-        }
+        "checkconfig_options": checkconfig.check_router_options,
+        "logname": "Router",
+        "topics": {
+            "starting": "crossbar.on_router_starting",
+            "started": "crossbar.on_router_started",
+        },
     }
-    factory['container'] = {
-        'class': ContainerWorkerProcess,
-        'worker_class': ContainerController,
-
+    factory["container"] = {
+        "class": ContainerWorkerProcess,
+        "worker_class": ContainerController,
         # check a whole container worker configuration item (including components, ..)
-        'checkconfig_item': checkconfig.check_container,
-
+        "checkconfig_item": checkconfig.check_container,
         # only check container worker options
-        'checkconfig_options': checkconfig.check_container_options,
-
-        'logname': 'Container',
-        'topics': {
-            'starting': 'crossbar.on_container_starting',
-            'started': 'crossbar.on_container_started',
-        }
+        "checkconfig_options": checkconfig.check_container_options,
+        "logname": "Container",
+        "topics": {
+            "starting": "crossbar.on_container_starting",
+            "started": "crossbar.on_container_started",
+        },
     }
-    factory['websocket-testee'] = {
-        'class': WebSocketTesteeWorkerProcess,
-        'worker_class': WebSocketTesteeController,
-
+    factory["websocket-testee"] = {
+        "class": WebSocketTesteeWorkerProcess,
+        "worker_class": WebSocketTesteeController,
         # check a whole websocket testee worker configuration item
-        'checkconfig_item': checkconfig.check_websocket_testee,
-
+        "checkconfig_item": checkconfig.check_websocket_testee,
         # only check websocket testee worker worker options
-        'checkconfig_options': checkconfig.check_websocket_testee_options,
-
-        'logname': 'WebSocketTestee',
-        'topics': {
-            'starting': 'crossbar.on_websocket_testee_starting',
-            'started': 'crossbar.on_websocket_testee_started',
-        }
+        "checkconfig_options": checkconfig.check_websocket_testee_options,
+        "logname": "WebSocketTestee",
+        "topics": {
+            "starting": "crossbar.on_websocket_testee_starting",
+            "started": "crossbar.on_websocket_testee_started",
+        },
     }
-    factory['proxy'] = {
-        'process_class': ProxyWorkerProcess,
-        'class': ProxyWorkerProcess,
-        'worker_class': ProxyController,
-
+    factory["proxy"] = {
+        "process_class": ProxyWorkerProcess,
+        "class": ProxyWorkerProcess,
+        "worker_class": ProxyController,
         # FIXME: check a whole proxy worker configuration item (including transports, backends, ..)
-        'checkconfig_item': _check_proxy_config,
+        "checkconfig_item": _check_proxy_config,
         # FIXME: only check proxy worker options
-        'checkconfig_options': do_nothing,  # checkconfig.check_native_worker_options,
-        'logname': 'Proxy',
-        'topics': {
-            'starting': 'crossbar.on_proxy_starting',
-            'started': 'crossbar.on_proxy_started',
-        }
+        "checkconfig_options": do_nothing,  # checkconfig.check_native_worker_options,
+        "logname": "Proxy",
+        "topics": {
+            "starting": "crossbar.on_proxy_starting",
+            "started": "crossbar.on_proxy_started",
+        },
     }
     return factory
 
@@ -165,15 +169,17 @@ def create_realm_store(personality, factory, config):
     :type config: dict
     """
     if not isinstance(config, Mapping):
-        raise Exception('invalid type {} for realm store configuration item'.format(type(config)))
+        raise Exception(
+            "invalid type {} for realm store configuration item".format(type(config))
+        )
 
-    if 'type' not in config:
-        raise Exception('missing store type in realm store configuration item')
+    if "type" not in config:
+        raise Exception("missing store type in realm store configuration item")
 
-    store_type = config['type']
+    store_type = config["type"]
 
     if store_type not in personality.REALM_STORES:
-        raise Exception('invalid or unavailable store type {}'.format(store_type))
+        raise Exception("invalid or unavailable store type {}".format(store_type))
 
     store_class = personality.REALM_STORES[store_type]
     store = store_class(personality, factory, config)
@@ -206,89 +212,72 @@ class Personality(object):
 
     log = txaio.make_logger()
 
-    NAME = 'standalone'
+    NAME = "standalone"
 
     TITLE = _TITLE
 
     DESC = crossbar.__doc__
 
-    BANNER = _BANNER.format(title=_TITLE, version=crossbar.__version__, year=time.strftime('%Y'))
+    BANNER = _BANNER.format(
+        title=_TITLE, version=crossbar.__version__, year=time.strftime("%Y")
+    )
 
-    LEGAL = ('crossbar', 'LEGAL')
-    LICENSE = ('crossbar', 'LICENSE')
-    LICENSE_FOR_API = ('crossbar', 'LICENSE-FOR-API')
-    LICENSES_OSS = ('crossbar', 'LICENSES-OSS')
+    LEGAL = ("crossbar", "LEGAL")
+    LICENSE = ("crossbar", "LICENSE")
+    LICENSE_FOR_API = ("crossbar", "LICENSE-FOR-API")
+    LICENSES_OSS = ("crossbar", "LICENSES-OSS")
 
     # a list of directories to serach Jinja2 templates for
     # rendering various web resources. this must be a list
     # of _pairs_ to be used with pkg_resources.resource_filename()!
-    TEMPLATE_DIRS = [('crossbar', 'webservice/templates')]
+    TEMPLATE_DIRS = [("crossbar", "webservice/templates")]
 
     WEB_SERVICE_CHECKERS = {
-        'none': None,
-
-        'path': checkconfig.check_web_path_service_path,
-        'redirect': checkconfig.check_web_path_service_redirect,
-        'resource': checkconfig.check_web_path_service_resource,
-        'reverseproxy': checkconfig.check_web_path_service_reverseproxy,
-
-        'nodeinfo': checkconfig.check_web_path_service_nodeinfo,
-        'json': checkconfig.check_web_path_service_json,
-        'cgi': checkconfig.check_web_path_service_cgi,
-
-        'wsgi': checkconfig.check_web_path_service_wsgi,
-
-        'static': checkconfig.check_web_path_service_static,
-
-        'websocket': checkconfig.check_web_path_service_websocket,
-        'websocket-reverseproxy': checkconfig.check_web_path_service_websocket_reverseproxy,
-
-        'longpoll': checkconfig.check_web_path_service_longpoll,
-
-        'caller': checkconfig.check_web_path_service_caller,
-        'publisher': checkconfig.check_web_path_service_publisher,
-        'webhook': checkconfig.check_web_path_service_webhook,
-
-        'archive': archive.RouterWebServiceArchive.check,
-        'wap': wap.RouterWebServiceWap.check,
+        "none": None,
+        "path": checkconfig.check_web_path_service_path,
+        "redirect": checkconfig.check_web_path_service_redirect,
+        "resource": checkconfig.check_web_path_service_resource,
+        "reverseproxy": checkconfig.check_web_path_service_reverseproxy,
+        "nodeinfo": checkconfig.check_web_path_service_nodeinfo,
+        "json": checkconfig.check_web_path_service_json,
+        "cgi": checkconfig.check_web_path_service_cgi,
+        "wsgi": checkconfig.check_web_path_service_wsgi,
+        "static": checkconfig.check_web_path_service_static,
+        "websocket": checkconfig.check_web_path_service_websocket,
+        "websocket-reverseproxy": checkconfig.check_web_path_service_websocket_reverseproxy,
+        "longpoll": checkconfig.check_web_path_service_longpoll,
+        "caller": checkconfig.check_web_path_service_caller,
+        "publisher": checkconfig.check_web_path_service_publisher,
+        "webhook": checkconfig.check_web_path_service_webhook,
+        "archive": archive.RouterWebServiceArchive.check,
+        "wap": wap.RouterWebServiceWap.check,
     }
 
     WEB_SERVICE_FACTORIES = {
         # renders to 404
-        'none': base.RouterWebService,
-
-        'path': base.RouterWebServiceNestedPath,
-        'redirect': base.RouterWebServiceRedirect,
-        'resource': base.RouterWebServiceTwistedWeb,
-        'reverseproxy': base.RouterWebServiceReverseWeb,
-
-        'nodeinfo': misc.RouterWebServiceNodeInfo,
-        'json': misc.RouterWebServiceJson,
-        'cgi': misc.RouterWebServiceCgi,
-
-        'wsgi': wsgi.RouterWebServiceWsgi,
-
-        'static': static.RouterWebServiceStatic,
-
-        'websocket': websocket.RouterWebServiceWebSocket,
-        'websocket-reverseproxy': websocket.RouterWebServiceWebSocketReverseProxy,
-
-        'longpoll': longpoll.RouterWebServiceLongPoll,
-
-        'caller': rest.RouterWebServiceRestCaller,
-        'publisher': rest.RouterWebServiceRestPublisher,
-        'webhook': rest.RouterWebServiceWebhook,
-
-        'archive': archive.RouterWebServiceArchive,
-        'wap': wap.RouterWebServiceWap,
+        "none": base.RouterWebService,
+        "path": base.RouterWebServiceNestedPath,
+        "redirect": base.RouterWebServiceRedirect,
+        "resource": base.RouterWebServiceTwistedWeb,
+        "reverseproxy": base.RouterWebServiceReverseWeb,
+        "nodeinfo": misc.RouterWebServiceNodeInfo,
+        "json": misc.RouterWebServiceJson,
+        "cgi": misc.RouterWebServiceCgi,
+        "wsgi": wsgi.RouterWebServiceWsgi,
+        "static": static.RouterWebServiceStatic,
+        "websocket": websocket.RouterWebServiceWebSocket,
+        "websocket-reverseproxy": websocket.RouterWebServiceWebSocketReverseProxy,
+        "longpoll": longpoll.RouterWebServiceLongPoll,
+        "caller": rest.RouterWebServiceRestCaller,
+        "publisher": rest.RouterWebServiceRestPublisher,
+        "webhook": rest.RouterWebServiceWebhook,
+        "archive": archive.RouterWebServiceArchive,
+        "wap": wap.RouterWebServiceWap,
     }
 
-    EXTRA_AUTH_METHODS = {
-    }
+    EXTRA_AUTH_METHODS = {}
 
-    REALM_STORES = {
-        'memory': MemoryRealmStore
-    }
+    REALM_STORES = {"memory": MemoryRealmStore}
 
     Node = node.Node
     NodeOptions = node.NodeOptions
@@ -347,8 +336,12 @@ class Personality(object):
     # listening transports
     check_router_transport = checkconfig.check_router_transport
     check_listening_endpoint = checkconfig.check_listening_endpoint
-    check_listening_transport_universal = checkconfig.check_listening_transport_universal
-    check_listening_transport_websocket = checkconfig.check_listening_transport_websocket
+    check_listening_transport_universal = (
+        checkconfig.check_listening_transport_universal
+    )
+    check_listening_transport_websocket = (
+        checkconfig.check_listening_transport_websocket
+    )
     check_listening_transport_web = checkconfig.check_listening_transport_web
 
     # web services
@@ -364,12 +357,20 @@ class Personality(object):
     check_connecting_transport = checkconfig.check_connecting_transport
 
     # check_listening_transport_websocket = checkconfig.check_listening_transport_websocket
-    check_listening_transport_rawsocket = checkconfig.check_listening_transport_rawsocket
+    check_listening_transport_rawsocket = (
+        checkconfig.check_listening_transport_rawsocket
+    )
     # check_listening_transport_universal = checkconfig.check_listening_transport_universal
     # check_listening_transport_web = checkconfig.check_listening_transport_web
     check_listening_transport_mqtt = checkconfig.check_listening_transport_mqtt
-    check_listening_transport_flashpolicy = checkconfig.check_listening_transport_flashpolicy
-    check_listening_transport_websocket_testee = checkconfig.check_listening_transport_websocket_testee
-    check_listening_transport_stream_testee = checkconfig.check_listening_transport_stream_testee
+    check_listening_transport_flashpolicy = (
+        checkconfig.check_listening_transport_flashpolicy
+    )
+    check_listening_transport_websocket_testee = (
+        checkconfig.check_listening_transport_websocket_testee
+    )
+    check_listening_transport_stream_testee = (
+        checkconfig.check_listening_transport_stream_testee
+    )
 
     check_listening_endpoint_onion = checkconfig.check_listening_endpoint_onion

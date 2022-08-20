@@ -53,12 +53,10 @@ def make_lc(self, reactor, func):
             stdout = self.stdout.getvalue()
             stderr = self.stderr.getvalue()
 
-            if self.stdout.getvalue()[self.stdout_length:]:
-                print(self.stdout.getvalue()[self.stdout_length:],
-                      file=sys.__stdout__)
-            if self.stderr.getvalue()[self.stderr_length:]:
-                print(self.stderr.getvalue()[self.stderr_length:],
-                      file=sys.__stderr__)
+            if self.stdout.getvalue()[self.stdout_length :]:
+                print(self.stdout.getvalue()[self.stdout_length :], file=sys.__stdout__)
+            if self.stderr.getvalue()[self.stderr_length :]:
+                print(self.stderr.getvalue()[self.stderr_length :], file=sys.__stderr__)
 
             self.stdout_length = len(stdout)
             self.stderr_length = len(stderr)
@@ -73,7 +71,6 @@ def make_lc(self, reactor, func):
 
 
 class ContainerRunningTests(CLITestBase):
-
     def setUp(self):
 
         CLITestBase.setUp(self)
@@ -85,11 +82,10 @@ class ContainerRunningTests(CLITestBase):
         self.code_location = os.path.abspath(self.mktemp())
         os.mkdir(self.code_location)
 
-    def _start_run(self, config, app, stdout_expected, stderr_expected,
-                   end_on):
+    def _start_run(self, config, app, stdout_expected, stderr_expected, end_on):
 
         with open(self.config, "wb") as f:
-            f.write(json.dumps(config, ensure_ascii=False).encode('utf8'))
+            f.write(json.dumps(config, ensure_ascii=False).encode("utf8"))
 
         with open(self.code_location + "/myapp.py", "w") as f:
             f.write(app)
@@ -101,11 +97,11 @@ class ContainerRunningTests(CLITestBase):
         # In case it hard-locks
         reactor.callLater(self._subprocess_timeout, reactor.stop)
 
-        main.main("crossbar",
-                  ["start",
-                   "--cbdir={}".format(self.cbdir),
-                   "--logformat=syslogd"],
-                  reactor=reactor)
+        main.main(
+            "crossbar",
+            ["start", "--cbdir={}".format(self.cbdir), "--logformat=syslogd"],
+            reactor=reactor,
+        )
 
         out = self.stdout.getvalue()
         err = self.stderr.getvalue()
@@ -121,9 +117,7 @@ class ContainerRunningTests(CLITestBase):
         """
         A basic start, that enters the reactor.
         """
-        expected_stdout = [
-            "Entering reactor event loop", "Loaded the component!"
-        ]
+        expected_stdout = ["Entering reactor event loop", "Loaded the component!"]
         expected_stderr = []
 
         def _check(lc, reactor):
@@ -135,14 +129,11 @@ class ContainerRunningTests(CLITestBase):
                     pass
 
         config = {
-            "controller": {
-            },
+            "controller": {},
             "workers": [
                 {
                     "type": "router",
-                    "options": {
-                        "pythonpath": ["."]
-                    },
+                    "options": {"pythonpath": ["."]},
                     "realms": [
                         {
                             "name": "realm1",
@@ -155,37 +146,27 @@ class ContainerRunningTests(CLITestBase):
                                             "publish": True,
                                             "subscribe": True,
                                             "call": True,
-                                            "register": True
+                                            "register": True,
                                         }
-                                    ]
+                                    ],
                                 }
-                            ]
+                            ],
                         }
                     ],
                     "transports": [
                         {
                             "type": "web",
-                            "endpoint": {
-                                "type": "tcp",
-                                "port": 8080
-                            },
+                            "endpoint": {"type": "tcp", "port": 8080},
                             "paths": {
-                                "/": {
-                                    "directory": ".",
-                                    "type": "static"
-                                },
-                                "ws": {
-                                    "type": "websocket"
-                                }
-                            }
+                                "/": {"directory": ".", "type": "static"},
+                                "ws": {"type": "websocket"},
+                            },
                         }
-                    ]
+                    ],
                 },
                 {
                     "type": "container",
-                    "options": {
-                        "pythonpath": [self.code_location]
-                    },
+                    "options": {"pythonpath": [self.code_location]},
                     "components": [
                         {
                             "type": "class",
@@ -196,14 +177,14 @@ class ContainerRunningTests(CLITestBase):
                                 "endpoint": {
                                     "type": "tcp",
                                     "host": "127.0.0.1",
-                                    "port": 8080
+                                    "port": 8080,
                                 },
-                                "url": "ws://127.0.0.1:8080/ws"
-                            }
+                                "url": "ws://127.0.0.1:8080/ws",
+                            },
                         }
-                    ]
-                }
-            ]
+                    ],
+                },
+            ],
         }
 
         myapp = """#!/usr/bin/env python
@@ -219,16 +200,13 @@ class MySession(ApplicationSession):
         self.log.info("Loaded the component!")
 """
 
-        self._start_run(config, myapp, expected_stdout, expected_stderr,
-                        _check)
+        self._start_run(config, myapp, expected_stdout, expected_stderr, _check)
 
     def test_start_run_guest(self):
         """
         A basic start of a guest.
         """
-        expected_stdout = [
-            "Entering reactor event loop", "Loaded the component!"
-        ]
+        expected_stdout = ["Entering reactor event loop", "Loaded the component!"]
         expected_stderr = []
 
         def _check(lc, reactor):
@@ -240,14 +218,11 @@ class MySession(ApplicationSession):
                     pass
 
         config = {
-            "controller": {
-            },
+            "controller": {},
             "workers": [
                 {
                     "type": "router",
-                    "options": {
-                        "pythonpath": ["."]
-                    },
+                    "options": {"pythonpath": ["."]},
                     "realms": [
                         {
                             "name": "realm1",
@@ -260,54 +235,43 @@ class MySession(ApplicationSession):
                                             "publish": True,
                                             "subscribe": True,
                                             "call": True,
-                                            "register": True
+                                            "register": True,
                                         }
-                                    ]
+                                    ],
                                 }
-                            ]
+                            ],
                         }
                     ],
                     "transports": [
                         {
                             "type": "web",
-                            "endpoint": {
-                                "type": "tcp",
-                                "port": 8080
-                            },
+                            "endpoint": {"type": "tcp", "port": 8080},
                             "paths": {
-                                "/": {
-                                    "directory": ".",
-                                    "type": "static"
-                                },
-                                "ws": {
-                                    "type": "websocket"
-                                }
-                            }
+                                "/": {"directory": ".", "type": "static"},
+                                "ws": {"type": "websocket"},
+                            },
                         }
-                    ]
+                    ],
                 },
                 {
                     "type": "guest",
                     "executable": sys.executable,
-                    "arguments": [os.path.join(self.code_location, "myapp.py")]
-                }
-            ]
+                    "arguments": [os.path.join(self.code_location, "myapp.py")],
+                },
+            ],
         }
 
         myapp = """#!/usr/bin/env python
 print("Loaded the component!")
 """
 
-        self._start_run(config, myapp, expected_stdout, expected_stderr,
-                        _check)
+        self._start_run(config, myapp, expected_stdout, expected_stderr, _check)
 
     def test_start_utf8_logging(self):
         """
         Logging things that are UTF8 but not Unicode should work fine.
         """
-        expected_stdout = [
-            "Entering reactor event loop", "\u2603"
-        ]
+        expected_stdout = ["Entering reactor event loop", "\u2603"]
         expected_stderr = []
 
         def _check(lc, reactor):
@@ -319,14 +283,11 @@ print("Loaded the component!")
                     pass
 
         config = {
-            "controller": {
-            },
+            "controller": {},
             "workers": [
                 {
                     "type": "router",
-                    "options": {
-                        "pythonpath": ["."]
-                    },
+                    "options": {"pythonpath": ["."]},
                     "realms": [
                         {
                             "name": "realm1",
@@ -339,37 +300,27 @@ print("Loaded the component!")
                                             "publish": True,
                                             "subscribe": True,
                                             "call": True,
-                                            "register": True
+                                            "register": True,
                                         }
-                                    ]
+                                    ],
                                 }
-                            ]
+                            ],
                         }
                     ],
                     "transports": [
                         {
                             "type": "web",
-                            "endpoint": {
-                                "type": "tcp",
-                                "port": 8080
-                            },
+                            "endpoint": {"type": "tcp", "port": 8080},
                             "paths": {
-                                "/": {
-                                    "directory": ".",
-                                    "type": "static"
-                                },
-                                "ws": {
-                                    "type": "websocket"
-                                }
-                            }
+                                "/": {"directory": ".", "type": "static"},
+                                "ws": {"type": "websocket"},
+                            },
                         }
-                    ]
+                    ],
                 },
                 {
                     "type": "container",
-                    "options": {
-                        "pythonpath": [self.code_location]
-                    },
+                    "options": {"pythonpath": [self.code_location]},
                     "components": [
                         {
                             "type": "class",
@@ -380,14 +331,14 @@ print("Loaded the component!")
                                 "endpoint": {
                                     "type": "tcp",
                                     "host": "127.0.0.1",
-                                    "port": 8080
+                                    "port": 8080,
                                 },
-                                "url": "ws://127.0.0.1:8080/ws"
-                            }
+                                "url": "ws://127.0.0.1:8080/ws",
+                            },
                         }
-                    ]
-                }
-            ]
+                    ],
+                },
+            ],
         }
 
         myapp = """#!/usr/bin/env python
@@ -403,8 +354,7 @@ class MySession(ApplicationSession):
         self.log.info("\\u2603")
 """
 
-        self._start_run(config, myapp, expected_stdout, expected_stderr,
-                        _check)
+        self._start_run(config, myapp, expected_stdout, expected_stderr, _check)
 
     def test_run_exception_utf8(self):
         """
@@ -427,37 +377,27 @@ class MySession(ApplicationSession):
                                             "publish": True,
                                             "subscribe": True,
                                             "call": True,
-                                            "register": True
+                                            "register": True,
                                         }
-                                    ]
+                                    ],
                                 }
-                            ]
+                            ],
                         }
                     ],
                     "transports": [
                         {
                             "type": "web",
-                            "endpoint": {
-                                "type": "tcp",
-                                "port": 8080
-                            },
+                            "endpoint": {"type": "tcp", "port": 8080},
                             "paths": {
-                                "/": {
-                                    "type": "static",
-                                    "directory": ".."
-                                },
-                                "ws": {
-                                    "type": "websocket"
-                                }
-                            }
+                                "/": {"type": "static", "directory": ".."},
+                                "ws": {"type": "websocket"},
+                            },
                         }
-                    ]
+                    ],
                 },
                 {
                     "type": "container",
-                    "options": {
-                        "pythonpath": [self.code_location]
-                    },
+                    "options": {"pythonpath": [self.code_location]},
                     "components": [
                         {
                             "type": "class",
@@ -468,13 +408,13 @@ class MySession(ApplicationSession):
                                 "endpoint": {
                                     "type": "tcp",
                                     "host": "127.0.0.1",
-                                    "port": 8080
+                                    "port": 8080,
                                 },
-                                "url": "ws://127.0.0.1:8080/ws"
-                            }
+                                "url": "ws://127.0.0.1:8080/ws",
+                            },
                         }
-                    ]
-                }
+                    ],
+                },
             ]
         }
 
@@ -516,8 +456,7 @@ class MySession(ApplicationSession):
                 except:
                     pass
 
-        self._start_run(config, myapp, expected_stdout, expected_stderr,
-                        _check)
+        self._start_run(config, myapp, expected_stdout, expected_stderr, _check)
 
     def test_failure1(self):
 
@@ -537,31 +476,23 @@ class MySession(ApplicationSession):
                                             "publish": True,
                                             "subscribe": True,
                                             "call": True,
-                                            "register": True
+                                            "register": True,
                                         }
-                                    ]
+                                    ],
                                 }
-                            ]
+                            ],
                         }
                     ],
                     "transports": [
                         {
                             "type": "web",
-                            "endpoint": {
-                                "type": "tcp",
-                                "port": 8080
-                            },
+                            "endpoint": {"type": "tcp", "port": 8080},
                             "paths": {
-                                "/": {
-                                    "type": "static",
-                                    "directory": ".."
-                                },
-                                "ws": {
-                                    "type": "websocket"
-                                }
-                            }
+                                "/": {"type": "static", "directory": ".."},
+                                "ws": {"type": "websocket"},
+                            },
                         }
-                    ]
+                    ],
                 },
                 {
                     "type": "container",
@@ -575,13 +506,13 @@ class MySession(ApplicationSession):
                                 "endpoint": {
                                     "type": "tcp",
                                     "host": "127.0.0.1",
-                                    "port": 8080
+                                    "port": 8080,
                                 },
-                                "url": "ws://127.0.0.1:8080/ws"
-                            }
+                                "url": "ws://127.0.0.1:8080/ws",
+                            },
                         }
-                    ]
-                }
+                    ],
+                },
             ]
         }
 
@@ -606,8 +537,7 @@ class MySession(ApplicationSession):
         def _check(_1, _2):
             pass
 
-        self._start_run(config, myapp, expected_stdout, expected_stderr,
-                        _check)
+        self._start_run(config, myapp, expected_stdout, expected_stderr, _check)
 
     def test_failure2(self):
 
@@ -627,37 +557,27 @@ class MySession(ApplicationSession):
                                             "publish": True,
                                             "subscribe": True,
                                             "call": True,
-                                            "register": True
+                                            "register": True,
                                         }
-                                    ]
+                                    ],
                                 }
-                            ]
+                            ],
                         }
                     ],
                     "transports": [
                         {
                             "type": "web",
-                            "endpoint": {
-                                "type": "tcp",
-                                "port": 8080
-                            },
+                            "endpoint": {"type": "tcp", "port": 8080},
                             "paths": {
-                                "/": {
-                                    "type": "static",
-                                    "directory": ".."
-                                },
-                                "ws": {
-                                    "type": "websocket"
-                                }
-                            }
+                                "/": {"type": "static", "directory": ".."},
+                                "ws": {"type": "websocket"},
+                            },
                         }
-                    ]
+                    ],
                 },
                 {
                     "type": "container",
-                    "options": {
-                        "pythonpath": [self.code_location]
-                    },
+                    "options": {"pythonpath": [self.code_location]},
                     "components": [
                         {
                             "type": "class",
@@ -668,13 +588,13 @@ class MySession(ApplicationSession):
                                 "endpoint": {
                                     "type": "tcp",
                                     "host": "127.0.0.1",
-                                    "port": 8080
+                                    "port": 8080,
                                 },
-                                "url": "ws://127.0.0.1:8080/ws"
-                            }
+                                "url": "ws://127.0.0.1:8080/ws",
+                            },
                         }
-                    ]
-                }
+                    ],
+                },
             ]
         }
 
@@ -696,14 +616,14 @@ class MySession(ApplicationSession):
 
         def _check(_1, _2):
             pass
+
         expected_stdout = []
         if sys.version_info >= (3, 5):
             expected_stderr = ["module 'myapp' has no attribute 'MySession2'"]
         else:
             expected_stderr = ["'module' object has no attribute 'MySession2'"]
 
-        self._start_run(config, myapp, expected_stdout, expected_stderr,
-                        _check)
+        self._start_run(config, myapp, expected_stdout, expected_stderr, _check)
 
     def test_failure3(self):
 
@@ -723,37 +643,27 @@ class MySession(ApplicationSession):
                                             "publish": True,
                                             "subscribe": True,
                                             "call": True,
-                                            "register": True
+                                            "register": True,
                                         }
-                                    ]
+                                    ],
                                 }
-                            ]
+                            ],
                         }
                     ],
                     "transports": [
                         {
                             "type": "web",
-                            "endpoint": {
-                                "type": "tcp",
-                                "port": 8080
-                            },
+                            "endpoint": {"type": "tcp", "port": 8080},
                             "paths": {
-                                "/": {
-                                    "type": "static",
-                                    "directory": ".."
-                                },
-                                "ws": {
-                                    "type": "websocket"
-                                }
-                            }
+                                "/": {"type": "static", "directory": ".."},
+                                "ws": {"type": "websocket"},
+                            },
                         }
-                    ]
+                    ],
                 },
                 {
                     "type": "container",
-                    "options": {
-                        "pythonpath": [self.code_location]
-                    },
+                    "options": {"pythonpath": [self.code_location]},
                     "components": [
                         {
                             "type": "class",
@@ -764,13 +674,13 @@ class MySession(ApplicationSession):
                                 "endpoint": {
                                     "type": "tcp",
                                     "host": "127.0.0.1",
-                                    "port": 8080
+                                    "port": 8080,
                                 },
-                                "url": "ws://127.0.0.1:8080/ws"
-                            }
+                                "url": "ws://127.0.0.1:8080/ws",
+                            },
                         }
-                    ]
-                }
+                    ],
+                },
             ]
         }
 
@@ -793,11 +703,11 @@ class MySession(ApplicationSession):
 
         def _check(_1, _2):
             pass
+
         expected_stdout = []
         expected_stderr = ["Component instantiation failed", "division by zero"]
 
-        self._start_run(config, myapp, expected_stdout, expected_stderr,
-                        _check)
+        self._start_run(config, myapp, expected_stdout, expected_stderr, _check)
 
     def test_failure4(self):
 
@@ -817,37 +727,27 @@ class MySession(ApplicationSession):
                                             "publish": True,
                                             "subscribe": True,
                                             "call": True,
-                                            "register": True
+                                            "register": True,
                                         }
-                                    ]
+                                    ],
                                 }
-                            ]
+                            ],
                         }
                     ],
                     "transports": [
                         {
                             "type": "web",
-                            "endpoint": {
-                                "type": "tcp",
-                                "port": 8080
-                            },
+                            "endpoint": {"type": "tcp", "port": 8080},
                             "paths": {
-                                "/": {
-                                    "type": "static",
-                                    "directory": ".."
-                                },
-                                "ws": {
-                                    "type": "websocket"
-                                }
-                            }
+                                "/": {"type": "static", "directory": ".."},
+                                "ws": {"type": "websocket"},
+                            },
                         }
-                    ]
+                    ],
                 },
                 {
                     "type": "container",
-                    "options": {
-                        "pythonpath": [self.code_location]
-                    },
+                    "options": {"pythonpath": [self.code_location]},
                     "components": [
                         {
                             "type": "class",
@@ -858,13 +758,13 @@ class MySession(ApplicationSession):
                                 "endpoint": {
                                     "type": "tcp",
                                     "host": "127.0.0.1",
-                                    "port": 8080
+                                    "port": 8080,
                                 },
-                                "url": "ws://127.0.0.1:8080/ws"
-                            }
+                                "url": "ws://127.0.0.1:8080/ws",
+                            },
                         }
-                    ]
-                }
+                    ],
+                },
             ]
         }
 
@@ -887,17 +787,20 @@ class MySession(ApplicationSession):
 
         def _check(_1, _2):
             pass
-        expected_stdout = []
-        expected_stderr = ["Fatal error in component", "While firing onJoin", "division by zero"]
 
-        self._start_run(config, myapp, expected_stdout, expected_stderr,
-                        _check)
+        expected_stdout = []
+        expected_stderr = [
+            "Fatal error in component",
+            "While firing onJoin",
+            "division by zero",
+        ]
+
+        self._start_run(config, myapp, expected_stdout, expected_stderr, _check)
 
     def test_failure5(self):
 
         config = {
-            "controller": {
-            },
+            "controller": {},
             "workers": [
                 {
                     "type": "router",
@@ -913,37 +816,27 @@ class MySession(ApplicationSession):
                                             "publish": True,
                                             "subscribe": True,
                                             "call": True,
-                                            "register": True
+                                            "register": True,
                                         }
-                                    ]
+                                    ],
                                 }
-                            ]
+                            ],
                         }
                     ],
                     "transports": [
                         {
                             "type": "web",
-                            "endpoint": {
-                                "type": "tcp",
-                                "port": 8080
-                            },
+                            "endpoint": {"type": "tcp", "port": 8080},
                             "paths": {
-                                "/": {
-                                    "type": "static",
-                                    "directory": ".."
-                                },
-                                "ws": {
-                                    "type": "websocket"
-                                }
-                            }
+                                "/": {"type": "static", "directory": ".."},
+                                "ws": {"type": "websocket"},
+                            },
                         }
-                    ]
+                    ],
                 },
                 {
                     "type": "container",
-                    "options": {
-                        "pythonpath": [self.code_location]
-                    },
+                    "options": {"pythonpath": [self.code_location]},
                     "components": [
                         {
                             "type": "class",
@@ -954,14 +847,14 @@ class MySession(ApplicationSession):
                                 "endpoint": {
                                     "type": "tcp",
                                     "host": "127.0.0.1",
-                                    "port": 8080
+                                    "port": 8080,
                                 },
-                                "url": "ws://127.0.0.1:8080/ws"
-                            }
+                                "url": "ws://127.0.0.1:8080/ws",
+                            },
                         }
-                    ]
-                }
-            ]
+                    ],
+                },
+            ],
         }
 
         myapp = """
@@ -987,19 +880,18 @@ class MySession(ApplicationSession):
 
         def _check(_1, _2):
             pass
+
         expected_stdout = []
         expected_stderr = [
             "Component 'component1' failed to start; shutting down node."
         ]
 
-        self._start_run(config, myapp, expected_stdout, expected_stderr,
-                        _check)
+        self._start_run(config, myapp, expected_stdout, expected_stderr, _check)
 
     def test_failure6(self):
 
         config = {
-            "controller": {
-            },
+            "controller": {},
             "workers": [
                 {
                     "type": "router",
@@ -1015,37 +907,27 @@ class MySession(ApplicationSession):
                                             "publish": True,
                                             "subscribe": True,
                                             "call": True,
-                                            "register": True
+                                            "register": True,
                                         }
-                                    ]
+                                    ],
                                 }
-                            ]
+                            ],
                         }
                     ],
                     "transports": [
                         {
                             "type": "web",
-                            "endpoint": {
-                                "type": "tcp",
-                                "port": 8080
-                            },
+                            "endpoint": {"type": "tcp", "port": 8080},
                             "paths": {
-                                "/": {
-                                    "type": "static",
-                                    "directory": ".."
-                                },
-                                "ws": {
-                                    "type": "websocket"
-                                }
-                            }
+                                "/": {"type": "static", "directory": ".."},
+                                "ws": {"type": "websocket"},
+                            },
                         }
-                    ]
+                    ],
                 },
                 {
                     "type": "container",
-                    "options": {
-                        "pythonpath": [self.code_location]
-                    },
+                    "options": {"pythonpath": [self.code_location]},
                     "components": [
                         {
                             "type": "class",
@@ -1056,14 +938,14 @@ class MySession(ApplicationSession):
                                 "endpoint": {
                                     "type": "tcp",
                                     "host": "127.0.0.1",
-                                    "port": 8080
+                                    "port": 8080,
                                 },
-                                "url": "ws://127.0.0.1:8080/ws"
-                            }
+                                "url": "ws://127.0.0.1:8080/ws",
+                            },
                         }
-                    ]
-                }
-            ]
+                    ],
+                },
+            ],
         }
 
         myapp = """
@@ -1095,15 +977,15 @@ class MySession(ApplicationSession):
 
         def _check(_1, _2):
             pass
+
         expected_stdout = [
             "Session ended: CloseDetails",
             "Sleeping a couple of secs and then shutting down",
-            "Container is hosting no more components: shutting down"
+            "Container is hosting no more components: shutting down",
         ]
         expected_stderr = []
 
-        self._start_run(config, myapp, expected_stdout, expected_stderr,
-                        _check)
+        self._start_run(config, myapp, expected_stdout, expected_stderr, _check)
 
     def test_failure7(self):
 
@@ -1123,37 +1005,27 @@ class MySession(ApplicationSession):
                                             "publish": True,
                                             "subscribe": True,
                                             "call": True,
-                                            "register": True
+                                            "register": True,
                                         }
-                                    ]
+                                    ],
                                 }
-                            ]
+                            ],
                         }
                     ],
                     "transports": [
                         {
                             "type": "web",
-                            "endpoint": {
-                                "type": "tcp",
-                                "port": 8080
-                            },
+                            "endpoint": {"type": "tcp", "port": 8080},
                             "paths": {
-                                "/": {
-                                    "type": "static",
-                                    "directory": ".."
-                                },
-                                "ws": {
-                                    "type": "websocket"
-                                }
-                            }
+                                "/": {"type": "static", "directory": ".."},
+                                "ws": {"type": "websocket"},
+                            },
                         }
-                    ]
+                    ],
                 },
                 {
                     "type": "container",
-                    "options": {
-                        "pythonpath": [self.code_location]
-                    },
+                    "options": {"pythonpath": [self.code_location]},
                     "components": [
                         {
                             "type": "class",
@@ -1164,13 +1036,13 @@ class MySession(ApplicationSession):
                                 "endpoint": {
                                     "type": "tcp",
                                     "host": "127.0.0.1",
-                                    "port": 8090
+                                    "port": 8090,
                                 },
-                                "url": "ws://127.0.0.1:8090/ws"
-                            }
+                                "url": "ws://127.0.0.1:8090/ws",
+                            },
                         }
-                    ]
-                }
+                    ],
+                },
             ]
         }
 
@@ -1193,20 +1065,20 @@ class MySession(ApplicationSession):
 
         def _check(_1, _2):
             pass
+
         expected_stdout = []
         expected_stderr = [
-            ("Could not connect container component to router - transport "
-             "establishment failed")
+            (
+                "Could not connect container component to router - transport "
+                "establishment failed"
+            )
         ]
 
-        self._start_run(config, myapp, expected_stdout, expected_stderr,
-                        _check)
+        self._start_run(config, myapp, expected_stdout, expected_stderr, _check)
 
 
 class InitTests(CLITestBase):
-
     def test_hello(self):
-
         def _check(lc, reactor):
             if "published to 'oncounter'" in self.stdout.getvalue():
                 lc.stop()
@@ -1219,14 +1091,13 @@ class InitTests(CLITestBase):
         cbdir = os.path.join(appdir, ".crossbar")
 
         reactor = SelectReactor()
-        main.main("crossbar",
-                  ["init",
-                   "--appdir={}".format(appdir),
-                   "--template=hello:python"],
-                  reactor=reactor)
+        main.main(
+            "crossbar",
+            ["init", "--appdir={}".format(appdir), "--template=hello:python"],
+            reactor=reactor,
+        )
 
-        self.assertIn("Application template initialized",
-                      self.stdout.getvalue())
+        self.assertIn("Application template initialized", self.stdout.getvalue())
 
         reactor = SelectReactor()
         make_lc(self, reactor, _check)
@@ -1234,11 +1105,11 @@ class InitTests(CLITestBase):
         # In case it hard-locks
         reactor.callLater(self._subprocess_timeout, reactor.stop)
 
-        main.main("crossbar",
-                  ["start",
-                   "--cbdir={}".format(cbdir.path),
-                   "--logformat=syslogd"],
-                  reactor=reactor)
+        main.main(
+            "crossbar",
+            ["start", "--cbdir={}".format(cbdir.path), "--logformat=syslogd"],
+            reactor=reactor,
+        )
 
         stdout_expected = ["published to 'oncounter'"]
 

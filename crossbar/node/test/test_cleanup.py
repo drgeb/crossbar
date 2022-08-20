@@ -39,6 +39,7 @@ from twisted.internet import task
 # the network framework before, we get an exception
 # "To use txaio, you must first select a framework" from txaio
 import txaio
+
 txaio.use_twisted()  # noqa
 
 from crossbar.node.node import NodeController
@@ -49,7 +50,7 @@ class CleanupHandler(unittest.TestCase):
         self.transport = MagicMock()
         self.worker = MagicMock()
         self.worker.proto.transport = self.transport
-        self.worker.pid = '42'
+        self.worker.pid = "42"
         self.worker.ready = Deferred()
         self.worker.exit = Deferred()
 
@@ -60,7 +61,7 @@ class CleanupHandler(unittest.TestCase):
         # should have sent TERM now
         calls = self.worker.proto.transport.method_calls
         self.assertTrue(calls[0][0] == "signalProcess")
-        self.assertTrue(calls[0][1] == ('TERM',))
+        self.assertTrue(calls[0][1] == ("TERM",))
 
         # skip ahead until our KILL. we loop because we only run one
         # timed-out thing on each advance maybe? Anyway it runs
