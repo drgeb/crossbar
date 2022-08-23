@@ -7,7 +7,7 @@
     value = "1.2.0b3"
   [[build.env]]
     name = "BP_POETRY_RUN_TARGET"
-    value = "crossbar"
+    value = "docker_crossbar"
 
 [tool.poetry]
 name = "crossbar"
@@ -50,7 +50,7 @@ setuptools = "^65.0.1"
 treq = "^22.2.0"
 txaio = "^22.2.1"
 txtorcon = "^22.0.0"
-urllib3 = "^1.26.11"
+urllib3 = "^1.26.12"
 watchdog = "^2.1.9"
 Werkzeug = "^2.2.2"
 wsaccel = "^0.6.3"
@@ -86,11 +86,14 @@ black = "*"
 pipenv-to-requirements = "*"
 pre-commit = "*"
 pylint = "*"
-pytest = "^6.1.2"
+pytest = "^7.1.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-crossbar = "crossbar:run"
+#command_name = module_for_handler : function for handler
+# poetry-run paketo can only have one script seems like
+docker_crossbar = "crossbar:run(['start', '--cbdir', '/bindings/node/.crossbar'])"
+#crossbar = "crossbar:run"
