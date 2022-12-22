@@ -29,5 +29,5 @@ APP_BASE_NAME=`basename "$0"`
 pack build ${APP_NAME} \
     --path ${APP_HOME} \
     --buildpack paketo-buildpacks/python \
-    --buildpack paketo-buildpacks/poetry-run@0.4.0 \
+    --buildpack paketo-buildpacks/poetry-run \
     --builder paketobuildpacks/builder:base
