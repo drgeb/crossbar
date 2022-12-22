@@ -1,7 +1,7 @@
 [build]
   [[build.env]]
     name = "BP_CPYTHON_VERSION"
-    value = "3.10.5" # any valid semver constraints (e.g. 3.6.7, 3.*) are acceptable
+    value = "3.9.15" # any valid semver constraints (e.g. 3.6.7, 3.*) are acceptable
   [[build.env]]
     name = "BP_POETRY_VERSION"
     value = "1.2.0b3"
@@ -17,7 +17,7 @@ authors= ["Crossbar.io Technologies GmbH"]
 license= "AGPL3"
 
 [tool.poetry.dependencies]
-python = "3.10.5"
+python = "3.9.15"
 attrs = "^22.1.0"
 autobahn = "^22.7.1"
 bitstring = "^3.1.9"
@@ -93,6 +93,7 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
+# !! CAUTION: Defining multiple scripts seems to interfere with docker image build process!!
 #command_name = module_for_handler : function for handler
 # poetry-run paketo can only have one script seems like
 docker_crossbar = "crossbar:run(['start', '--cbdir', '/bindings/node/.crossbar'])"
